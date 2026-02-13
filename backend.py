@@ -970,21 +970,21 @@ def home():
 @app.route('/ejecutar/<script>', methods=['GET'])
 def ejecutar_script(script):
     try:
-        if script == 'kuramoto_explorer' or script == 'hito2':
-            output, img = ejecutar_kuramoto2()
-        elif script == 'modelo_46' or script == 'hito4':
-            output, img = ejecutar_kuramoto4()
-        elif script == 'macro_podb' or script == 'hito7':
-            output, img = ejecutar_kuramoto7()
-        # ========== AÑADE ESTOS ==========
-        elif script == 'kuramoto1' or script == 'hito1':
+        if script == 'kuramoto1' or script == 'hito1':
             output, img = ejecutar_kuramoto1()
+        elif script == 'kuramoto_explorer' or script == 'hito2':
+            output, img = ejecutar_kuramoto2()
         elif script == 'kuramoto3' or script == 'hito3':
-            output, img = ejecutar_kuramoto3()
+            output, img = ejecutar_kuramoto3()    
+        elif script == 'modelo_46' or script == 'hito4':
+            output, img = ejecutar_kuramoto4()            
         elif script == 'kuramoto5' or script == 'hito5':
             output, img = ejecutar_kuramoto5()
         elif script == 'kuramoto6' or script == 'hito6':
             output, img = ejecutar_kuramoto6()
+        elif script == 'macro_podb' or script == 'hito7':
+            output, img = ejecutar_kuramoto7()
+               
         else:
             return jsonify({'success': False, 'error': f'Script "{script}" no encontrado'})
 
