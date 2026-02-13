@@ -2232,7 +2232,7 @@ def ejecutar_script(script):
             'output': output,
             'imagen': img
         }
-
+        
         # Si hay callback (JSONP), devolver con ese nombre
         callback = request.args.get('callback')
         if callback:
