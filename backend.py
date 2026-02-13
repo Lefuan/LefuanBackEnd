@@ -665,4 +665,341 @@ def ejecutar_kuramoto5():
     
     r_final = [r[-1] for r in r_nivel]
     output_lines.append("\n=== RESULTADOS ===")
-   
+    for i, r in enumerate(r_final):
+        estado = "✅ COHERENTE" if r > 0.8 else "⚠️ DIFUSO" if r > 0.5 else "❌ CAÓTICO"
+        output_lines.append(f"Nivel {i}: r={r:.3f} {estado}")
+
+    # Gráfica
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8))
+    colores = plt.cm.viridis(np.linspace(0, 1, len(r_nivel)))
+    for i, r in enumerate(r_nivel):
+        axes[0].plot(t, r, color=colores[i], label=f'N{i}', linewidth=1.5)
+    axes[0].set_xlabel('Tiempo')
+    axes[0].set_ylabel('Sincronización r')
+    axes[0].set_ylim(0, 1.1)
+    axes[0].grid(True, alpha=0.3)
+    axes[0].legend()
+    axes[0].set_title('Evolución temporal (Scale-free + Malla)')
+
+    axes[1].bar(range(len(r_final)), r_final, color=colores)
+    axes[1].set_xlabel('Nivel')
+    axes[1].set_ylabel('r final')
+    axes[1].set_ylim(0, 1.1)
+    axes[1].axhline(y=0.8, color='g', linestyle='--', alpha=0.5, label='Coherente')
+    axes[1].axhline(y=0.5, color='orange', linestyle='--', alpha=0.5, label='Difuso')
+    axes[1].grid(True, alpha=0.3)
+    axes[1].legend()
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close('all')
+
+    return "\n".join(output_lines), img_base64
+
+# ============================================
+# FUNCIÓN PARA KURAMOTO6 (Hito 6 - PODB)
+# ============================================
+def ejecutar_kuramoto6():
+    """Código de kuramoto6.py - Modelo PODB"""
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.integrate import solve_ivp
+
+    def generar_scale_free(n_osc, m=2):
+        if n_osc <= m:
+            return np.ones((n_osc, n_osc)) - np.eye(n_osc)
+        grados = np.zeros(n_osc)
+        A = np.zeros((n_osc, n_osc))
+        for i in range(m+1):
+            for j in range(i+1, m+1):
+                A[i, j] = 1
+                A[j, i] = 1
+                grados[i] += 1
+                grados[j] += 1
+        for nuevo in range(m+1, n_osc):
+            prob = grados[:nuevo] / np.sum(grados[:nuevo])
+            elegidos = np.random.choice(nuevo, size=m, replace=False, p=prob)
+            for viejo in elegidos:
+                A[nuevo, viejo] = 1
+                A[viejo, nuevo] = 1
+                grados[nuevo] += 1
+                grados[viejo] += 1
+        return A
+
+    class KuramotoPODB:
+        def __init__(self, niveles=3, metros_por_plataforma=3,
+                     topologia_intra='scale_free', topologia_inter='malla',
+                     K_base=2.0, K_inter_base=1.5, K_lateral_base=0.3):
+            self.niveles = niveles
+            self.mpp = metros_por_plataforma
+            self.topologia_intra = topologia_intra
+            self.topologia_inter = topologia_inter
+            self.K_base = K_base
+            self.K_inter_base = K_inter_base
+            self.K_lateral_base = K_lateral_base
+
+            self.plataformas_por_nivel = [3**i for i in range(niveles)]
+            self.osciladores_por_nivel = [p * metros_por_plataforma for p in self.plataformas_por_nivel]
+            self.total = sum(self.osciladores_por_nivel)
+
+            np.random.seed(42)
+            self.omega = np.concatenate([
+                np.random.normal(1.0, 0.1 + 0.02*i, n)
+                for i, n in enumerate(self.osciladores_por_nivel)
+            ])
+
+            self.adjacencias = self._construir_adjacencias()
+            self.K_matrices = self._inicializar_K()
+            self.indices = self._construir_indices()
+
+        def _construir_indices(self):
+            indices = []
+            start = 0
+            for n in self.osciladores_por_nivel:
+                indices.append(slice(start, start + n))
+                start += n
+            return indices
+
+        def _construir_adjacencias(self):
+            adj = []
+            for nivel in range(self.niveles):
+                n_plt = self.plataformas_por_nivel[nivel]
+                adj_nivel = []
+                for p in range(n_plt):
+                    n_osc = self.mpp
+                    if self.topologia_intra == 'scale_free':
+                        if n_osc > 2:
+                            A = generar_scale_free(n_osc, m=2)
+                        else:
+                            A = np.ones((n_osc, n_osc)) - np.eye(n_osc)
+                    else:
+                        A = np.ones((n_osc, n_osc)) - np.eye(n_osc)
+                    adj_nivel.append(A)
+                adj.append(adj_nivel)
+            return adj
+
+        def _inicializar_K(self):
+            K_mat = []
+            for nivel in range(self.niveles):
+                n_plt = self.plataformas_por_nivel[nivel]
+                K_nivel = []
+                for p in range(n_plt):
+                    n_osc = self.mpp
+                    A = self.adjacencias[nivel][p]
+                    K_plt = self.K_base * A
+                    K_nivel.append(K_plt)
+                K_mat.append(K_nivel)
+            return K_mat
+
+        def _estado_a_partir_de_fase(self, delta_theta):
+            delta = np.abs(delta_theta) % (2*np.pi)
+            if delta > np.pi:
+                delta = 2*np.pi - delta
+            return (np.cos(delta) + 1) / 2
+
+        def actualizar_K_por_estado(self, theta):
+            for nivel in range(self.niveles):
+                if nivel == 0:
+                    theta_nivel = theta[self.indices[0]]
+                    n_plt = 1
+                    n_osc = len(theta_nivel)
+                    theta_reshaped = theta_nivel.reshape(1, n_osc)
+                else:
+                    n_plt = self.plataformas_por_nivel[nivel]
+                    n_osc = self.mpp
+                    theta_reshaped = theta[self.indices[nivel]].reshape(n_plt, n_osc)
+
+                for p in range(n_plt):
+                    A = self.adjacencias[nivel][p]
+                    K_actual = self.K_matrices[nivel][p]
+                    for i in range(n_osc):
+                        for j in range(n_osc):
+                            if A[i, j] > 0 and i != j:
+                                delta = theta_reshaped[p, i] - theta_reshaped[p, j]
+                                estado_valor = self._estado_a_partir_de_fase(delta)
+                                K_actual[i, j] = self.K_base * estado_valor
+                    self.K_matrices[nivel][p] = K_actual
+
+        def dynamics(self, t, theta):
+            self.actualizar_K_por_estado(theta)
+            dtheta = np.zeros_like(theta)
+
+            theta0 = theta[self.indices[0]]
+            n0 = len(theta0)
+            K0 = self.K_matrices[0][0]
+            for i in range(n0):
+                suma = 0
+                for j in range(n0):
+                    if i != j:
+                        suma += K0[i, j] * np.sin(theta0[j] - theta0[i])
+                dtheta[self.indices[0]][i] = self.omega[self.indices[0]][i] + suma
+
+            for nivel in range(1, self.niveles):
+                n_plt = self.plataformas_por_nivel[nivel]
+                n_osc = self.mpp
+                theta_n = theta[self.indices[nivel]].reshape(n_plt, n_osc)
+                dtheta_n = np.zeros_like(theta_n)
+
+                theta_prev = theta[self.indices[nivel-1]].reshape(self.plataformas_por_nivel[nivel-1], self.mpp)
+                r_prev = np.mean(np.exp(1j * theta_prev), axis=1)
+                phi_prev = np.angle(r_prev)
+
+                conexiones_laterales = []
+                if self.topologia_inter == 'malla':
+                    for p in range(n_plt):
+                        if p > 0:
+                            conexiones_laterales.append((p, p-1))
+                        if p < n_plt - 1:
+                            conexiones_laterales.append((p, p+1))
+
+                for p in range(n_plt):
+                    madre = p // 3
+                    K_plt = self.K_matrices[nivel][p]
+                    for i in range(n_osc):
+                        intra = 0
+                        for j in range(n_osc):
+                            if i != j:
+                                intra += K_plt[i, j] * np.sin(theta_n[p, j] - theta_n[p, i])
+                        inter = self.K_inter_base * np.sin(phi_prev[madre] - theta_n[p, i])
+                        
+                        lateral = 0
+                        norm = max(1, len(conexiones_laterales))
+                        for (p1, p2) in conexiones_laterales:
+                            if p == p1:
+                                for j in range(n_osc):
+                                    lateral += np.sin(theta_n[p2, j] - theta_n[p, i])
+                            elif p == p2:
+                                for j in range(n_osc):
+                                    lateral += np.sin(theta_n[p1, j] - theta_n[p, i])
+                        lateral = self.K_lateral_base * lateral / norm
+
+                        idx = self.indices[nivel].start + p*n_osc + i
+                        dtheta_n[p, i] = self.omega[idx] + intra + inter + lateral
+
+                dtheta[self.indices[nivel]] = dtheta_n.flatten()
+            return dtheta
+
+        def simular(self, T=20, puntos=150):
+            theta0 = np.random.uniform(-np.pi, np.pi, self.total)
+            sol = solve_ivp(self.dynamics, (0, T), theta0,
+                            t_eval=np.linspace(0, T, puntos),
+                            method='RK45', rtol=1e-2)
+            r_nivel = []
+            for nivel in range(self.niveles):
+                fases = sol.y[self.indices[nivel]]
+                if len(fases.shape) == 1:
+                    r = np.abs(np.mean(np.exp(1j * fases), axis=0))
+                else:
+                    r = np.abs(np.mean(np.exp(1j * fases), axis=0))
+                r_nivel.append(r)
+            return sol.t, r_nivel, sol.y
+
+    # Ejecutar
+    output_lines = []
+    output_lines.append("\n🌀 KURAMOTO CON ESTADOS P-O-D-B")
+    
+    sim = KuramotoPODB(niveles=3, metros_por_plataforma=4,
+                       topologia_intra='scale_free',
+                       topologia_inter='malla')
+
+    t, r_nivel, theta_hist = sim.simular(T=20, puntos=150)
+
+    output_lines.append("\n=== SINCRONIZACIÓN POR NIVEL ===")
+    for i, r in enumerate([r[-1] for r in r_nivel]):
+        estado = "✅" if r > 0.8 else "⚠️" if r > 0.5 else "❌"
+        output_lines.append(f"Nivel {i}: r={r:.3f} {estado}")
+
+    # Gráfica
+    plt.figure(figsize=(10, 5))
+    for i, r in enumerate(r_nivel):
+        plt.plot(t, r, label=f'Nivel {i}', linewidth=2)
+    plt.xlabel('Tiempo')
+    plt.ylabel('Sincronización r')
+    plt.ylim(0, 1.1)
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+    plt.title('Evolución de la sincronización por nivel')
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close('all')
+
+    return "\n".join(output_lines), img_base64
+
+# ============================================
+# FUNCIÓN PARA KURAMOTO7 (Hito 7 - Macro)
+# ============================================
+def ejecutar_kuramoto7():
+    """Código de kuramoto7.py - Macro PODB"""
+    # Esta función llamará a las otras según sea necesario
+    # Por ahora, devolvemos un mensaje
+    return "Hito 7: Macro PODB - En desarrollo", ""
+
+# ============================================
+# FUNCIONES DE EJECUCIÓN (LAS QUE LLAMA EL ENDPOINT)
+# ============================================
+
+def ejecutar_kuramoto_explorer():
+    """Ejecuta el script del Hito 2 (kuramoto_explorer)"""
+    return ejecutar_kuramoto2()
+
+def ejecutar_modelo_46():
+    """Ejecuta el script del Hito 4 (modelo_efectivo_46_capas)"""
+    return ejecutar_kuramoto4()
+
+def ejecutar_macro_podb():
+    """Ejecuta el script del Hito 7 (MacroPODB)"""
+    return ejecutar_kuramoto7()
+
+# ============================================
+# API ENDPOINTS
+# ============================================
+
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({
+        'status': 'ok',
+        'scripts': ['kuramoto_explorer', 'modelo_46', 'macro_podb']
+    })
+
+@app.route('/ejecutar/<script>', methods=['GET'])
+def ejecutar_script(script):
+    try:
+        if script == 'kuramoto_explorer':
+            output, img = ejecutar_kuramoto_explorer()
+        elif script == 'modelo_46':
+            output, img = ejecutar_modelo_46()
+        elif script == 'macro_podb':
+            output, img = ejecutar_macro_podb()
+        else:
+            return jsonify({'success': False, 'error': 'Script no encontrado'})
+
+        respuesta = {
+            'success': True,
+            'output': output,
+            'imagen': img
+        }
+        
+        callback = request.args.get('callback')
+        if callback:
+            from flask import json
+            return f"{callback}({json.dumps(respuesta)})"
+        else:
+            return jsonify(respuesta)
+
+    except Exception as e:
+        respuesta = {'success': False, 'error': str(e)}
+        callback = request.args.get('callback')
+        if callback:
+            from flask import json
+            return f"{callback}({json.dumps(respuesta)})"
+        else:
+            return jsonify(respuesta)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
