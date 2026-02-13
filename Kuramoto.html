@@ -282,42 +282,58 @@
         // EJECUTAR SCRIPT EN KOYEB
         // ============================================
         async function ejecutarScript() {
-            if (!scriptSeleccionado) {
-                alert('Selecciona un script primero');
-                return;
+    if (!scriptSeleccionado) {
+        alert('Selecciona un script primero');
+        return;
+    }
+
+    const btn = document.getElementById('btnEjecutar');
+    const outputEl = document.getElementById('output');
+    const plotsEl = document.getElementById('plots');
+
+    btn.disabled = true;
+    outputEl.innerText = '⏳ Ejecutando en servidor...';
+    plotsEl.innerHTML = '';
+
+    try {
+        // Usamos JSONP para evitar problemas de CORS
+        const callbackName = 'callback_' + Date.now();
+
+        const result = await new Promise((resolve, reject) => {
+            window[callbackName] = function(data) {
+                resolve(data);
+                delete window[callbackName];
+                document.head.removeChild(script);
+            };
+
+            const script = document.createElement('script');
+            script.src = `${API_URL}/ejecutar/${scriptSeleccionado}?callback=${callbackName}`;
+            script.onerror = () => reject(new Error('Error de conexión'));
+            document.head.appendChild(script);
+
+            // Timeout por si acaso
+            setTimeout(() => reject(new Error('Timeout')), 30000);
+        });
+
+        if (result.success) {
+            // Mostrar texto
+            outputEl.innerText = result.output || '✅ Simulación completada';
+
+            // ¡ESTO ES NUEVO! - Mostrar la gráfica si existe
+            if (result.imagen) {
+                plotsEl.innerHTML = `<img src="data:image/png;base64,${result.imagen}" alt="Gráfica">`;
+            } else {
+                plotsEl.innerHTML = '<p>⚠️ El script no generó gráfica</p>';
             }
-
-            const btn = document.getElementById('btnEjecutar');
-            const outputEl = document.getElementById('output');
-            const plotsEl = document.getElementById('plots');
-
-            btn.disabled = true;
-            outputEl.innerText = '⏳ Enviando petición al servidor...';
-            plotsEl.innerHTML = '';
-
-            try {
-                // Llamar al backend en Koyeb
-                const response = await fetch(`${API_URL}/ejecutar/${scriptSeleccionado}`);
-                const result = await response.json();
-
-                if (result.success) {
-                    // Mostrar salida de texto
-                    outputEl.innerText = result.output || '✅ Simulación completada (sin salida de texto)';
-
-                    // Mostrar gráfica si existe
-                    if (result.imagen) {
-                        plotsEl.innerHTML = `<img src="data:image/png;base64,${result.imagen}" alt="Gráfica de resultados">`;
-                    }
-                } else {
-                    outputEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${result.error || 'Error desconocido'}</span>`;
-                }
-            } catch (error) {
-                outputEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error de conexión: ${error.message}</span>`;
-                console.error(error);
-            } finally {
-                btn.disabled = false;
-            }
+        } else {
+            outputEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${result.error || 'Error desconocido'}</span>`;
         }
+    } catch (error) {
+        outputEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${error.message}</span>`;
+    } finally {
+        btn.disabled = false;
+    }
+}
     </script>
 </body>
 </html>
