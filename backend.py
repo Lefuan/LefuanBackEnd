@@ -888,6 +888,7 @@ def ejecutar_hito6():
 # ============================================
 def ejecutar_hito7():
     """Hito 7: MacroPODB - Versión unificada con todas las opciones"""
+    global KuramotoPODB
     output_lines = []
     imagenes = []
     
