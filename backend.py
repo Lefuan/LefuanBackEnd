@@ -970,20 +970,25 @@ def home():
 @app.route('/ejecutar/<script>', methods=['GET'])
 def ejecutar_script(script):
     try:
-        if script == 'kuramoto_explorer':
-            output, img = ejecutar_kuramoto_explorer()
-        elif script == 'modelo_46':
-            output, img = ejecutar_modelo_46()
-        elif script == 'macro_podb':
-            output, img = ejecutar_macro_podb()
+        if script == 'kuramoto_explorer' or script == 'hito2':
+            output, img = ejecutar_kuramoto2()
+        elif script == 'modelo_46' or script == 'hito4':
+            output, img = ejecutar_kuramoto4()
+        elif script == 'macro_podb' or script == 'hito7':
+            output, img = ejecutar_kuramoto7()
+        # ========== AÑADE ESTOS ==========
+        elif script == 'kuramoto1' or script == 'hito1':
+            output, img = ejecutar_kuramoto1()
+        elif script == 'kuramoto3' or script == 'hito3':
+            output, img = ejecutar_kuramoto3()
+        elif script == 'kuramoto5' or script == 'hito5':
+            output, img = ejecutar_kuramoto5()
+        elif script == 'kuramoto6' or script == 'hito6':
+            output, img = ejecutar_kuramoto6()
         else:
-            return jsonify({'success': False, 'error': 'Script no encontrado'})
+            return jsonify({'success': False, 'error': f'Script "{script}" no encontrado'})
 
-        respuesta = {
-            'success': True,
-            'output': output,
-            'imagen': img
-        }
+        respuesta = {'success': True, 'output': output, 'imagen': img}
         
         callback = request.args.get('callback')
         if callback:
