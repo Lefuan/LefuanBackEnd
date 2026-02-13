@@ -89,6 +89,42 @@
             font-weight: 500;
         }
 
+        .param-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        .param-panel h4 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        .param-row {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .param-row label {
+            font-weight: 500;
+            color: #495057;
+            min-width: 150px;
+        }
+        .param-row select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        .param-row select:hover {
+            border-color: #3498db;
+        }
+
         .control-panel {
             background: white;
             border-radius: 10px;
@@ -153,6 +189,7 @@
             max-width: 100%;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -167,13 +204,16 @@
             <div class="selector-panel">
                 <h2>📁 Selecciona un script para ejecutar:</h2>
 
-                <div class="script-grid" id="scriptGrid">
-                    <!-- Las tarjetas se generarán con JavaScript -->
+                <div class="script-grid" id="scriptGrid"></div>
+
+                <div class="param-panel" id="paramPanel" style="display: none;">
+                    <h4>⚙️ Parámetros del script:</h4>
+                    <div id="parametros-dinamicos"></div>
                 </div>
 
                 <div class="control-panel">
                     <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-                        <button class="btn-ejecutar" id="btnEjecutar" onclick="ejecutarScript()" disabled>
+                        <button class="btn-ejecutar" id="btnEjecutar" disabled>
                             ▶ Ejecutar Simulación
                         </button>
                     </div>
@@ -190,22 +230,38 @@
 
     <script>
         // ============================================
-        // CONFIGURACIÓN - CAMBIA ESTA URL POR LA DE KOYEB
+        // CONFIGURACIÓN
         // ============================================
-        const API_URL = 'https://peculiar-ilysa-lefuan-f5eb738f.koyeb.app'; // <-- PON AQUÍ TU URL PÚBLICA
+        const API_URL = 'https://peculiar-ilysa-lefuan-f5eb738f.koyeb.app';
 
         // ============================================
         // SCRIPTS DISPONIBLES
         // ============================================
         const SCRIPTS = [
-            { id: 'hito1', nombre: '🌀 Hito 1 - KuramotoPRO', badge: 'Base' },
-            { id: 'hito2', nombre: '📊 Hito 2 - Kuramoto Explorer', badge: '3 niveles' },
-            { id: 'hito3', nombre: '⚙️ Hito 3 - Kuramoto7_1', badge: '6 niveles' },
-            { id: 'hito4', nombre: '📈 Hito 4 - Modelo 46 Capas', badge: '46 capas' },
-            { id: 'hito5', nombre: '🔄 Hito 5 - Kuramoto7_4', badge: '7 topologías' },
-            { id: 'hito6', nombre: '🔬 Hito 6 - KuramotoPODB', badge: 'PODB' },
-            { id: 'hito7', nombre: '🚀 Hito 7 - MacroPODB', badge: 'Unificado' }
+            { id: 'hito1', nombre: '🌀 Hito 1 - KuramotoPRO', desc: 'Modelo base de 3 niveles (1+3+9 plataformas)', badge: 'Base' },
+            { id: 'hito2', nombre: '📊 Hito 2 - Kuramoto Explorer', desc: 'Exploración de K_intra y K_inter en 3 niveles', badge: '3 niveles' },
+            { id: 'hito3', nombre: '⚙️ Hito 3 - Kuramoto7_1', desc: 'Simulación de N niveles jerárquicos', badge: 'N niveles' },
+            { id: 'hito4', nombre: '📈 Hito 4 - Modelo 46 Capas', desc: 'Extrapolación a 46 niveles con parámetros de orden', badge: '46 capas' },
+            { id: 'hito5', nombre: '🔄 Hito 5 - Kuramoto7_4', desc: 'Exploración de 7 topologías diferentes', badge: '7 topologías' },
+            { id: 'hito6', nombre: '🔬 Hito 6 - KuramotoPODB', desc: 'Estados P-O-D-B por conexión', badge: 'PODB' },
+            { id: 'hito7', nombre: '🚀 Hito 7 - MacroPODB', desc: 'Versión unificada con todas las opciones', badge: 'Unificado' }
         ];
+
+        // ============================================
+        // PARÁMETROS POR SCRIPT
+        // ============================================
+        const PARAMETROS_SCRIPT = {
+            'hito3': [
+                { nombre: 'niveles', tipo: 'select', opciones: [3,4,5,6], default: 6, label: 'Número de niveles' }
+            ],
+            'hito5': [
+                { nombre: 'opcion', tipo: 'select', opciones: [1,2,3,4,5,6,7], default: 6, label: 'Opción de topología' }
+            ],
+            'hito6': [
+                { nombre: 'niveles', tipo: 'select', opciones: [2,3,4], default: 3, label: 'Niveles' },
+                { nombre: 'metros', tipo: 'select', opciones: [3,4], default: 4, label: 'Metrónomos/plataforma' }
+            ]
+        };
 
         let scriptSeleccionado = null;
 
@@ -235,77 +291,122 @@
         function seleccionarScript(id) {
             scriptSeleccionado = id;
 
-            // Actualizar UI
             document.querySelectorAll('.script-card').forEach(c => {
                 c.classList.remove('selected');
             });
             document.getElementById(`card-${id}`).classList.add('selected');
-
-            // Habilitar botón
+            
             document.getElementById('btnEjecutar').disabled = false;
-
-            // Mostrar selección
+            
             const script = SCRIPTS.find(s => s.id === id);
             document.getElementById('output').innerText = `✅ Script seleccionado: ${script.nombre}`;
+            
+            mostrarParametros(id);
+        }
+
+        function mostrarParametros(scriptId) {
+            const panel = document.getElementById('paramPanel');
+            const div = document.getElementById('parametros-dinamicos');
+            
+            if (!PARAMETROS_SCRIPT[scriptId]) {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            panel.style.display = 'block';
+            let html = '';
+            
+            PARAMETROS_SCRIPT[scriptId].forEach(param => {
+                html += `<div class="param-row">`;
+                html += `<label>${param.label}:</label>`;
+                
+                if (param.tipo === 'select') {
+                    html += `<select id="param-${param.nombre}">`;
+                    param.opciones.forEach(val => {
+                        html += `<option value="${val}" ${val === param.default ? 'selected' : ''}>${val}</option>`;
+                    });
+                    html += `</select>`;
+                }
+                
+                html += `</div>`;
+            });
+            
+            div.innerHTML = html;
         }
 
         // ============================================
-        // EJECUTAR SCRIPT EN KOYEB
+        // EJECUTAR SCRIPT
         // ============================================
         async function ejecutarScript() {
-    if (!scriptSeleccionado) {
-        alert('Selecciona un script primero');
-        return;
-    }
-
-    const btn = document.getElementById('btnEjecutar');
-    const outputEl = document.getElementById('output');
-    const plotsEl = document.getElementById('plots');
-
-    btn.disabled = true;
-    outputEl.innerText = '⏳ Ejecutando en servidor...';
-    plotsEl.innerHTML = '';
-
-    try {
-        const callbackName = 'callback_' + Date.now();
-
-        const result = await new Promise((resolve, reject) => {
-            window[callbackName] = function(data) {
-                resolve(data);
-                delete window[callbackName];
-                if (script) document.head.removeChild(script);
-            };
-
-            const script = document.createElement('script');
-            script.src = `${API_URL}/ejecutar/${scriptSeleccionado}?callback=${callbackName}`;
-            script.onerror = () => reject(new Error('Error de conexión'));
-            document.head.appendChild(script);
-
-            setTimeout(() => reject(new Error('Timeout')), 60000);
-        });
-
-        if (result.success) {
-            outputEl.innerText = result.output || '✅ Simulación completada';
-
-            // ✅ CORREGIDO: usar result.imagenes (plural)
-            if (result.imagenes && result.imagenes.length > 0) {
-                let html = '';
-                result.imagenes.forEach((img, index) => {
-                    html += `<img src="data:image/png;base64,${img}" alt="Gráfica ${index+1}" style="margin-bottom: 20px; max-width: 100%; border: 1px solid #ddd; border-radius: 5px;">`;
-                });
-                plotsEl.innerHTML = html;
-            } else {
-                plotsEl.innerHTML = '<p>⚠️ El script no generó gráficas</p>';
+            if (!scriptSeleccionado) {
+                alert('Selecciona un script primero');
+                return;
             }
-        } else {
-            outputEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${result.error || 'Error desconocido'}</span>`;
+
+            const btn = document.getElementById('btnEjecutar');
+            const outputEl = document.getElementById('output');
+            const plotsEl = document.getElementById('plots');
+
+            btn.disabled = true;
+            outputEl.innerText = '⏳ Ejecutando en servidor...';
+            plotsEl.innerHTML = '';
+
+            try {
+                // Recoger parámetros
+                const params = {};
+                if (PARAMETROS_SCRIPT[scriptSeleccionado]) {
+                    PARAMETROS_SCRIPT[scriptSeleccionado].forEach(param => {
+                        const input = document.getElementById(`param-${param.nombre}`);
+                        if (input) params[param.nombre] = input.value;
+                    });
+                }
+
+                // JSONP
+                const callbackName = 'callback_' + Date.now();
+
+                const result = await new Promise((resolve, reject) => {
+                    window[callbackName] = function(data) {
+                        resolve(data);
+                        delete window[callbackName];
+                        if (script) document.head.removeChild(script);
+                    };
+
+                    let url = `${API_URL}/ejecutar/${scriptSeleccionado}?callback=${callbackName}`;
+                    if (Object.keys(params).length > 0) {
+                        url += '&' + new URLSearchParams(params).toString();
+                    }
+
+                    const script = document.createElement('script');
+                    script.src = url;
+                    script.onerror = () => reject(new Error('Error de conexión'));
+                    document.head.appendChild(script);
+
+                    setTimeout(() => reject(new Error('Timeout')), 60000);
+                });
+
+                if (result.success) {
+                    outputEl.innerText = result.output || '✅ Simulación completada';
+
+                    if (result.imagenes && result.imagenes.length > 0) {
+                        let html = '';
+                        result.imagenes.forEach((img, index) => {
+                            html += `<img src="data:image/png;base64,${img}" alt="Gráfica ${index+1}">`;
+                        });
+                        plotsEl.innerHTML = html;
+                    } else {
+                        plotsEl.innerHTML = '<p>⚠️ El script no generó gráficas</p>';
+                    }
+                } else {
+                    outputEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${result.error || 'Error desconocido'}</span>`;
+                }
+            } catch (error) {
+                outputEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${error.message}</span>`;
+            } finally {
+                btn.disabled = false;
+            }
         }
-    } catch (error) {
-        outputEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${error.message}</span>`;
-    } finally {
-        btn.disabled = false;
-    }
-}
+
+        document.getElementById('btnEjecutar').onclick = ejecutarScript;
     </script>
 </body>
 </html>
