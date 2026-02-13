@@ -4,3 +4,4 @@ gunicorn
 numpy
 scipy
 matplotlib
+networkx
