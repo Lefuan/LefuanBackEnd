@@ -267,14 +267,13 @@
     plotsEl.innerHTML = '';
 
     try {
-        // Usamos JSONP para evitar problemas de CORS
         const callbackName = 'callback_' + Date.now();
 
         const result = await new Promise((resolve, reject) => {
             window[callbackName] = function(data) {
                 resolve(data);
                 delete window[callbackName];
-                document.head.removeChild(script);
+                if (script) document.head.removeChild(script);
             };
 
             const script = document.createElement('script');
@@ -282,19 +281,21 @@
             script.onerror = () => reject(new Error('Error de conexión'));
             document.head.appendChild(script);
 
-            // Timeout por si acaso
-            setTimeout(() => reject(new Error('Timeout')), 30000);
+            setTimeout(() => reject(new Error('Timeout')), 60000);
         });
 
         if (result.success) {
-            // Mostrar texto
             outputEl.innerText = result.output || '✅ Simulación completada';
 
-            // ¡ESTO ES NUEVO! - Mostrar la gráfica si existe
-            if (result.imagen) {
-                plotsEl.innerHTML = `<img src="data:image/png;base64,${result.imagen}" alt="Gráfica">`;
+            // ✅ CORREGIDO: usar result.imagenes (plural)
+            if (result.imagenes && result.imagenes.length > 0) {
+                let html = '';
+                result.imagenes.forEach((img, index) => {
+                    html += `<img src="data:image/png;base64,${img}" alt="Gráfica ${index+1}" style="margin-bottom: 20px; max-width: 100%; border: 1px solid #ddd; border-radius: 5px;">`;
+                });
+                plotsEl.innerHTML = html;
             } else {
-                plotsEl.innerHTML = '<p>⚠️ El script no generó gráfica</p>';
+                plotsEl.innerHTML = '<p>⚠️ El script no generó gráficas</p>';
             }
         } else {
             outputEl.innerHTML = `<span style="color: #ff6b6b;">❌ Error: ${result.error || 'Error desconocido'}</span>`;
