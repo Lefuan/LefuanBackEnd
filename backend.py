@@ -1626,5 +1626,99 @@ def ejecutar_script(script):
         else:
             return jsonify(respuesta)
 
+# ============================================
+# ENDPOINT PARA RE2M (modelo de colapso)
+# ============================================
+
+def simular_re2m(pasos_de_tiempo, nodos, enlaces, nodos_fijos):
+    """
+    Función que simula la dinámica del modelo RE²M (un modelo de colapso de información).
+    """
+    # 1. Inicialización de la red
+    current_states = {n['id']: n['estado_inicial'] for n in nodos}
+    current_energies = {n['id']: 0.0 for n in nodos}
+    nir_thresholds = {n['id']: float(n['nir']) for n in nodos}
+
+    # Prepara el historial
+    historial_estados = [current_states.copy()]
+    historial_energies = [current_energies.copy()]
+
+    # 2. Información de Nodos (para el encabezado de la tabla del frontend)
+    nodos_info = {n['id']: n['nombre'] for n in nodos}
+
+    # 3. Bucle de Simulación
+    for t in range(1, pasos_de_tiempo + 1):
+        next_states = current_states.copy()
+        next_energies = current_energies.copy()
+
+        # Calcular la energía entrante (E_in) para cada nodo
+        incoming_energy = {n['id']: 0.0 for n in nodos}
+
+        for enlace in enlaces:
+            origen = enlace['origen_id']
+            destino = enlace['destino_id']
+            estado_relacional = enlace['estado_relacional']
+            energia_enlace = enlace['energia_enlace']
+
+            # Solo los enlaces con estado P, O o D transportan energía
+            if estado_relacional in ['P', 'O', 'D'] and current_states[origen] in ['P', 'O', 'D']:
+                incoming_energy[destino] += energia_enlace
+
+        # Aplicar reglas de colapso a los nodos no fijos
+        for node_id, nir in nir_thresholds.items():
+            if node_id not in nodos_fijos:
+                e_in = incoming_energy[node_id]
+
+                # Regla de Colapso Simplificada
+                if e_in >= nir and current_states[node_id] != 'B':
+                    next_states[node_id] = 'P'
+                elif current_states[node_id] == 'P' and e_in == 0:
+                    next_states[node_id] = 'O'
+
+                next_energies[node_id] = round(e_in, 2)
+            else:
+                next_energies[node_id] = round(incoming_energy[node_id], 2)
+
+        current_states = next_states
+        current_energies = next_energies
+
+        historial_estados.append(current_states.copy())
+        historial_energies.append(current_energies.copy())
+
+    return historial_estados, historial_energies, nodos_info
+
+@app.route('/simular', methods=['POST'])
+def simular_re2m_endpoint():
+    """Endpoint para el modelo RE2M"""
+    try:
+        data = request.get_json()
+
+        pasos_de_tiempo = data.get('pasos_de_tiempo', 2)
+        nodos = data.get('nodos', [])
+        enlaces = data.get('enlaces', [])
+        nodos_fijos = data.get('nodos_fijos', [])
+
+        if not nodos:
+            return jsonify({'success': False, 'error': 'No se proporcionaron nodos para la simulación.'}), 400
+
+        # Ejecutar la simulación
+        historial_estados, historial_energies, nodos_info = simular_re2m(
+            pasos_de_tiempo, nodos, enlaces, nodos_fijos
+        )
+
+        response = {
+            'success': True,
+            'message': f"Simulación completada en {pasos_de_tiempo} pasos.",
+            'historial_estados': historial_estados,
+            'historial_energies': historial_energies,
+            'nodos_info': nodos_info
+        }
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        print(f"Error en la simulación RE2M: {e}")
+        return jsonify({'success': False, 'error': f'Error interno del servidor: {e}'}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
