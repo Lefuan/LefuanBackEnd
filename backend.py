@@ -18,6 +18,15 @@ CORS(app)
 # FUNCIONES AUXILIARES COMUNES
 # ============================================
 
+def figura_a_base64(fig):
+    """Convierte una figura de matplotlib a base64"""
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close(fig)
+    return img_base64
+
 def generar_scale_free(n_osc, m=2):
     """Genera matriz de adyacencia scale-free"""
     if n_osc <= m:
@@ -44,24 +53,15 @@ def generar_scale_free(n_osc, m=2):
     
     return A
 
-def figura_a_base64(fig):
-    """Convierte una figura de matplotlib a base64"""
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
-    buf.seek(0)
-    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    plt.close(fig)
-    return img_base64
-
 # ============================================
-# HITO 1: KuramotoPRO (modelo base 3 niveles)
+# HITO 1: KuramotoPRO (independiente)
 # ============================================
-def ejecutar_hito1():
+def ejecutar_hito1(params=None):
     """Hito 1: KuramotoPRO - Modelo básico de 3 niveles"""
     output_lines = []
     imagenes = []
     
-    # Parámetros
+    # Parámetros fijos de este hito
     N1, N2, N3 = 5, 4, 3
     np.random.seed(42)
     omega1 = np.random.normal(1.0, 0.1, N1)
@@ -72,20 +72,16 @@ def ejecutar_hito1():
     t_span = (0, 50)
     t_eval = np.linspace(0, 50, 1000)
     
-    # Índices
     idx1 = slice(0, N1)
     idx2 = slice(N1, N1 + 3*N2)
     idx3 = slice(N1 + 3*N2, N1 + 3*N2 + 9*N3)
     
     def dynamics(t, theta):
         dtheta = np.zeros_like(theta)
-        
-        # Nivel 1
         theta1 = theta[idx1]
         for i in range(N1):
             dtheta[i] = omega1[i] + (K_intra/N1) * np.sum(np.sin(theta1 - theta1[i]))
         
-        # Nivel 2
         theta2 = theta[idx2].reshape(3, N2)
         dtheta2 = np.zeros_like(theta2)
         r1 = np.mean(np.exp(1j * theta1))
@@ -97,7 +93,6 @@ def ejecutar_hito1():
                 dtheta2[p, i] = omega2[p*N2 + i] + intra + inter
         dtheta[idx2] = dtheta2.flatten()
         
-        # Nivel 3
         theta3 = theta[idx3].reshape(9, N3)
         dtheta3 = np.zeros_like(theta3)
         r2 = np.mean(np.exp(1j * theta2), axis=1)
@@ -111,20 +106,22 @@ def ejecutar_hito1():
         dtheta[idx3] = dtheta3.flatten()
         return dtheta
     
-    # Simular
-    theta0 = np.random.uniform(-np.pi, np.pi, N1 + 3*N2 + 9*N3)
+    theta0 = np.concatenate([
+        np.random.uniform(-np.pi, np.pi, N1),
+        np.random.uniform(-np.pi, np.pi, 3*N2),
+        np.random.uniform(-np.pi, np.pi, 9*N3)
+    ])
+    
     sol = solve_ivp(dynamics, t_span, theta0, t_eval=t_eval, method='RK45')
     
-    # Calcular sincronización
     r1 = np.abs(np.mean(np.exp(1j * sol.y[idx1]), axis=0))
     theta2_hist = sol.y[idx2].reshape(3, N2, -1)
     r2 = np.abs(np.mean(np.exp(1j * theta2_hist), axis=1))
     theta3_hist = sol.y[idx3].reshape(9, N3, -1)
     r3 = np.abs(np.mean(np.exp(1j * theta3_hist), axis=1))
     
-    # GRÁFICA 1: Evolución temporal
+    # Gráfica
     fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
-    
     axes[0].plot(sol.t, r1, 'b-', linewidth=2)
     axes[0].set_ylabel('r1 (Nivel 1)')
     axes[0].set_ylim(0, 1.1)
@@ -150,31 +147,26 @@ def ejecutar_hito1():
     plt.tight_layout()
     imagenes.append(figura_a_base64(fig))
     
-    # Análisis de tiempos
-    umbral = 0.9
-    output_lines.append("\n=== HITO 1: KURAMOTO PRO ===")
-    output_lines.append(f"Total osciladores: {N1 + 3*N2 + 9*N3}")
-    
-    t_sync1 = sol.t[np.where(r1 > umbral)[0][0]] if np.any(r1 > umbral) else np.inf
-    output_lines.append(f"Nivel 1 - Sincronización: t={t_sync1:.2f}s, r_final={r1[-1]:.3f}")
-    
-    r2_final = np.mean(r2[:,-1])
-    output_lines.append(f"Nivel 2 - r_final promedio: {r2_final:.3f}")
-    
-    r3_final = np.mean(r3[:,-1])
-    output_lines.append(f"Nivel 3 - r_final promedio: {r3_final:.3f}")
+    # Output
+    output_lines.append(f"\n{'='*50}")
+    output_lines.append(f"HITO 1: KURAMOTO PRO")
+    output_lines.append(f"{'='*50}")
+    output_lines.append(f"Nivel 1 - r_final: {r1[-1]:.3f}")
+    output_lines.append(f"Nivel 2 - r_final promedio: {np.mean(r2[:,-1]):.3f}")
+    output_lines.append(f"Nivel 3 - r_final promedio: {np.mean(r3[:,-1]):.3f}")
     
     return "\n".join(output_lines), imagenes
 
+
 # ============================================
-# HITO 2: Kuramoto Explorer (exploración de parámetros)
+# HITO 2: Kuramoto Explorer (independiente)
 # ============================================
-def ejecutar_hito2():
-    """Hito 2: kuramoto_explorer.py - Exploración de K_intra y K_inter"""
+def ejecutar_hito2(params=None):
+    """Hito 2: Kuramoto Explorer - Exploración de parámetros"""
     output_lines = []
     imagenes = []
     
-    def simular_caso(N1, N2, N3, K_intra, K_inter, T, caso_nombre):
+    def simular_caso(N1, N2, N3, K_intra, K_inter, T, titulo):
         np.random.seed(42)
         omega1 = np.random.normal(1.0, 0.1, N1)
         omega2 = np.random.normal(1.0, 0.15, 3 * N2)
@@ -189,7 +181,6 @@ def ejecutar_hito2():
         
         def dynamics(t, theta):
             dtheta = np.zeros_like(theta)
-            
             theta1 = theta[idx1]
             for i in range(N1):
                 dtheta[i] = omega1[i] + (K_intra/N1) * np.sum(np.sin(theta1 - theta1[i]))
@@ -229,7 +220,7 @@ def ejecutar_hito2():
         
         return sol.t, r1, r2, r3
     
-    # Caso 1: Original (K_inter=1.5)
+    # Caso 1: Original
     output_lines.append(f"\n{'='*50}")
     output_lines.append(f"CASO 1: K_intra=2.0, K_inter=1.5")
     output_lines.append('='*50)
@@ -237,10 +228,10 @@ def ejecutar_hito2():
     t, r1, r2, r3 = simular_caso(5, 4, 3, 2.0, 1.5, 25, "Original")
     
     output_lines.append(f"Nivel 1 - Final: r={r1[-1]:.3f}")
-    output_lines.append(f"Nivel 2 - Promedio final: r={np.mean(r2[:,-1]):.3f}")
-    output_lines.append(f"Nivel 3 - Promedio final: r={np.mean(r3[:,-1]):.3f}")
+    output_lines.append(f"Nivel 2 - Promedio: r={np.mean(r2[:,-1]):.3f}")
+    output_lines.append(f"Nivel 3 - Promedio: r={np.mean(r3[:,-1]):.3f}")
     
-    # GRÁFICA 1: Caso original
+    # Gráfica caso 1
     fig, axes = plt.subplots(3, 1, figsize=(12, 8))
     axes[0].plot(t, r1, 'b-', linewidth=2)
     axes[0].set_ylabel('Nivel 1')
@@ -262,7 +253,7 @@ def ejecutar_hito2():
     plt.tight_layout()
     imagenes.append(figura_a_base64(fig))
     
-    # Caso 2: Débil (K_inter=0.5)
+    # Caso 2: Débil
     output_lines.append(f"\n{'='*50}")
     output_lines.append(f"CASO 2: K_intra=2.0, K_inter=0.5")
     output_lines.append('='*50)
@@ -270,10 +261,10 @@ def ejecutar_hito2():
     t, r1, r2, r3 = simular_caso(5, 4, 3, 2.0, 0.5, 25, "Débil")
     
     output_lines.append(f"Nivel 1 - Final: r={r1[-1]:.3f}")
-    output_lines.append(f"Nivel 2 - Promedio final: r={np.mean(r2[:,-1]):.3f}")
-    output_lines.append(f"Nivel 3 - Promedio final: r={np.mean(r3[:,-1]):.3f}")
+    output_lines.append(f"Nivel 2 - Promedio: r={np.mean(r2[:,-1]):.3f}")
+    output_lines.append(f"Nivel 3 - Promedio: r={np.mean(r3[:,-1]):.3f}")
     
-    # GRÁFICA 2: Caso débil
+    # Gráfica caso 2
     fig, axes = plt.subplots(3, 1, figsize=(12, 8))
     axes[0].plot(t, r1, 'b-', linewidth=2)
     axes[0].set_ylabel('Nivel 1')
@@ -295,7 +286,7 @@ def ejecutar_hito2():
     plt.tight_layout()
     imagenes.append(figura_a_base64(fig))
     
-    # Caso 3: Fuerte (K_inter=3.0)
+    # Caso 3: Fuerte
     output_lines.append(f"\n{'='*50}")
     output_lines.append(f"CASO 3: K_intra=2.0, K_inter=3.0")
     output_lines.append('='*50)
@@ -303,10 +294,10 @@ def ejecutar_hito2():
     t, r1, r2, r3 = simular_caso(5, 4, 3, 2.0, 3.0, 25, "Fuerte")
     
     output_lines.append(f"Nivel 1 - Final: r={r1[-1]:.3f}")
-    output_lines.append(f"Nivel 2 - Promedio final: r={np.mean(r2[:,-1]):.3f}")
-    output_lines.append(f"Nivel 3 - Promedio final: r={np.mean(r3[:,-1]):.3f}")
+    output_lines.append(f"Nivel 2 - Promedio: r={np.mean(r2[:,-1]):.3f}")
+    output_lines.append(f"Nivel 3 - Promedio: r={np.mean(r3[:,-1]):.3f}")
     
-    # GRÁFICA 3: Caso fuerte
+    # Gráfica caso 3
     fig, axes = plt.subplots(3, 1, figsize=(12, 8))
     axes[0].plot(t, r1, 'b-', linewidth=2)
     axes[0].set_ylabel('Nivel 1')
@@ -330,22 +321,26 @@ def ejecutar_hito2():
     
     return "\n".join(output_lines), imagenes
 
+
 # ============================================
-# HITO 3: Kuramoto7_1 (simulación de 3 niveles con variantes)
+# HITO 3: Kuramoto7_1 (con parámetros)
 # ============================================
-def ejecutar_hito3():
-    """Hito 3: Kuramoto7_1 - Simulación de 3 niveles con diferentes configuraciones"""
+def ejecutar_hito3(params):
+    """Hito 3: Kuramoto7_1 - Simulación de N niveles"""
     output_lines = []
     imagenes = []
     
-    def simular_niveles(niveles=6, metros_por_plataforma=3, K_intra=2.0, K_inter=1.5):
-        plataformas_por_nivel = [3**i for i in range(niveles)]
+    # Recoger parámetros
+    niveles = int(params.get('niveles', 6))
+    
+    def simular_niveles(niv, metros_por_plataforma=3, K_intra=2.0, K_inter=1.5):
+        plataformas_por_nivel = [3**i for i in range(niv)]
         osciladores_por_nivel = [p * metros_por_plataforma for p in plataformas_por_nivel]
         total = sum(osciladores_por_nivel)
         
         np.random.seed(42)
         frecuencias = []
-        for nivel in range(niveles):
+        for nivel in range(niv):
             std = 0.1 + 0.02 * nivel
             n_osc = osciladores_por_nivel[nivel]
             frecuencias.append(np.random.normal(1.0, std, n_osc))
@@ -367,7 +362,7 @@ def ejecutar_hito3():
             for i in range(len(theta0)):
                 dtheta[indices[0]][i] = omega[indices[0]][i] + (K_intra/len(theta0)) * np.sum(np.sin(theta0 - theta0[i]))
             
-            for nivel in range(1, niveles):
+            for nivel in range(1, niv):
                 n_plt = 3**nivel
                 n_por_plt = metros_por_plataforma
                 theta_n = theta[indices[nivel]].reshape(n_plt, n_por_plt)
@@ -392,7 +387,7 @@ def ejecutar_hito3():
         sol = solve_ivp(dynamics, t_span, theta0, t_eval=t_eval, method='RK45', rtol=1e-2)
         
         r_por_nivel = []
-        for nivel in range(niveles):
+        for nivel in range(niv):
             fases = sol.y[indices[nivel]]
             if len(fases.shape) == 1:
                 r = np.abs(np.mean(np.exp(1j * fases), axis=0))
@@ -403,53 +398,57 @@ def ejecutar_hito3():
         return sol.t, r_por_nivel, plataformas_por_nivel
     
     output_lines.append(f"\n{'='*60}")
-    output_lines.append(f"HITO 3: SIMULANDO 6 NIVELES JERÁRQUICOS")
+    output_lines.append(f"HITO 3: SIMULANDO {niveles} NIVELES")
     output_lines.append(f"{'='*60}")
     
-    t, r_niveles, plt_por_nivel = simular_niveles(niveles=6, metros_por_plataforma=3)
+    t, r_niveles, plt_por_nivel = simular_niveles(niveles)
     
-    # GRÁFICA 1: Evolución temporal de todos los niveles
-    fig, axes = plt.subplots(6, 1, figsize=(12, 14))
-    for i in range(6):
+    # Gráfica 1: Evolución temporal
+    fig, axes = plt.subplots(niveles, 1, figsize=(12, 2*niveles+4))
+    if niveles == 1:
+        axes = [axes]
+    
+    for i in range(niveles):
         axes[i].plot(t, r_niveles[i], linewidth=2)
         axes[i].set_ylabel(f'N{i}')
         axes[i].set_ylim(0, 1.1)
         axes[i].grid(True, alpha=0.3)
         axes[i].axhline(y=0.8, color='gray', linestyle='--', alpha=0.5)
     axes[-1].set_xlabel('Tiempo')
-    plt.suptitle('Sincronización en 6 Niveles Jerárquicos')
+    plt.suptitle(f'Sincronización en {niveles} Niveles')
     plt.tight_layout()
     imagenes.append(figura_a_base64(fig))
     
-    # GRÁFICA 2: Degradación de coherencia
+    # Gráfica 2: Degradación
     fig2, ax2 = plt.subplots(figsize=(10, 6))
     r_final = [r[-1] for r in r_niveles]
-    niveles_x = np.arange(6)
+    niveles_x = np.arange(niveles)
     
     ax2.plot(niveles_x, r_final, 'bo-', linewidth=2, markersize=8)
-    ax2.set_xlabel('Nivel jerárquico')
-    ax2.set_ylabel('Sincronización final (r)')
-    ax2.set_title('Degradación de la coherencia con la profundidad')
+    ax2.set_xlabel('Nivel')
+    ax2.set_ylabel('r final')
+    ax2.set_title('Degradación de coherencia')
     ax2.grid(True, alpha=0.3)
-    ax2.set_xticks(niveles_x)
-    ax2.axhline(y=0.8, color='r', linestyle='--', alpha=0.5, label='Umbral coherencia')
-    ax2.axhline(y=0.5, color='orange', linestyle='--', alpha=0.5, label='Umbral caos')
+    ax2.axhline(y=0.8, color='r', linestyle='--', alpha=0.5, label='Coherente')
+    ax2.axhline(y=0.5, color='orange', linestyle='--', alpha=0.5, label='Difuso')
     ax2.legend()
     plt.tight_layout()
     imagenes.append(figura_a_base64(fig2))
     
-    output_lines.append("\n=== RESULTADOS POR NIVEL ===")
+    # Output
+    output_lines.append("\n=== RESULTADOS ===")
     for i, r in enumerate(r_final):
         estado = "✅ Coherente" if r > 0.8 else "⚠️ Difuso" if r > 0.5 else "❌ Caótico"
         output_lines.append(f"Nivel {i}: r={r:.3f} {estado}")
     
     return "\n".join(output_lines), imagenes
 
+
 # ============================================
-# HITO 4: Modelo Efectivo 46 Capas
+# HITO 4: Modelo 46 Capas (independiente)
 # ============================================
-def ejecutar_hito4():
-    """Hito 4: modelo_efectivo_46_capas.py - Extrapolación a 46 niveles"""
+def ejecutar_hito4(params=None):
+    """Hito 4: Modelo efectivo 46 capas"""
     output_lines = []
     imagenes = []
     
@@ -469,47 +468,52 @@ def ejecutar_hito4():
         gamma_acumulado[capa] = gamma_acumulado[capa-1] * (1 + 0.05 * (1 - r[capa]))
         tiempo_efectivo[capa] = tiempo_efectivo[capa-1] + 1.0 / gamma_acumulado[capa]
     
-    # GRÁFICA 1: Degradación
+    # Gráfica
     fig, axes = plt.subplots(2, 1, figsize=(12, 8))
     capas = np.arange(n_capas)
     
     axes[0].plot(capas, r, 'b-', linewidth=2)
-    axes[0].set_xlabel('Nivel de capa')
-    axes[0].set_ylabel('Sincronización (r)')
-    axes[0].set_title('Degradación de la sincronización en 46 capas')
+    axes[0].set_xlabel('Nivel')
+    axes[0].set_ylabel('Sincronización r')
+    axes[0].set_title('Degradación en 46 capas')
     axes[0].grid(True, alpha=0.3)
-    axes[0].axhline(y=0.5, color='r', linestyle='--', label='Umbral de coherencia')
+    axes[0].axhline(y=0.5, color='r', linestyle='--', label='Umbral')
     axes[0].legend()
     
     axes[1].plot(capas, tiempo_efectivo, 'g-', linewidth=2)
-    axes[1].set_xlabel('Nivel de capa')
-    axes[1].set_ylabel('Tiempo efectivo acumulado')
-    axes[1].set_title('Ralentización del tiempo por capa')
+    axes[1].set_xlabel('Nivel')
+    axes[1].set_ylabel('Tiempo efectivo')
+    axes[1].set_title('Ralentización del tiempo')
     axes[1].grid(True, alpha=0.3)
     
     plt.tight_layout()
     imagenes.append(figura_a_base64(fig))
     
-    # Resultados
+    # Output
     capa_critica = np.where(r < 0.5)[0][0] if np.any(r < 0.5) else n_capas
     output_lines.append(f"\n{'='*60}")
-    output_lines.append(f"HITO 4: MODELO EFECTIVO 46 CAPAS")
+    output_lines.append(f"HITO 4: MODELO 46 CAPAS")
     output_lines.append(f"{'='*60}")
-    output_lines.append(f"Pérdida de coherencia (r<0.5) en capa: {capa_critica}")
-    output_lines.append(f"Sincronización final capa 46: r={r[-1]:.4f}")
-    output_lines.append(f"Tiempo efectivo acumulado en capa 46: {tiempo_efectivo[-1]:.2f}")
+    output_lines.append(f"Pérdida coherencia (r<0.5) en capa: {capa_critica}")
+    output_lines.append(f"r final capa 46: {r[-1]:.4f}")
+    output_lines.append(f"Tiempo efectivo acumulado: {tiempo_efectivo[-1]:.2f}")
     
     return "\n".join(output_lines), imagenes
 
+
 # ============================================
-# HITO 5: Kuramoto7_4 (exploración de 7 topologías)
+# HITO 5: Kuramoto7_4 (con parámetros)
 # ============================================
-def ejecutar_hito5():
-    """Hito 5: Kuramoto7_4 - Exploración de 7 topologías"""
+def ejecutar_hito5(params):
+    """Hito 5: Kuramoto7_4 - Exploración de topologías"""
     output_lines = []
     imagenes = []
     
-    class KuramotoJerarquico:
+    # Recoger parámetros
+    opcion = params.get('opcion', '6')
+    
+    # Clase específica para este hito (no compartida)
+    class Hito5_KuramotoJerarquico:
         def __init__(self, niveles=5, metros_por_plataforma=3,
                      topologia_intra='global', topologia_inter='jerarquica',
                      K_intra=2.0, K_inter=1.5, K_lateral=0.5):
@@ -635,16 +639,27 @@ def ejecutar_hito5():
             return sol.t, r_nivel
     
     output_lines.append(f"\n{'='*60}")
-    output_lines.append(f"HITO 5: EXPLORACIÓN DE 7 TOPOLOGÍAS")
+    output_lines.append(f"HITO 5: OPCIÓN {opcion}")
     output_lines.append(f"{'='*60}")
     
-    # Ejecutar opción 6 (Scale-free + Malla) - la mejor
-    output_lines.append("\n🔬 OPCIÓN 6: Scale-free + Malla")
+    # Mapeo de opciones
+    configs = {
+        '1': ('global', 'jerarquica'),
+        '2': ('anillo', 'jerarquica'),
+        '3': ('scale_free', 'jerarquica'),
+        '4': ('estrella', 'jerarquica'),
+        '5': ('global', 'malla'),
+        '6': ('scale_free', 'malla'),
+        '7': ('scale_free', 'global')
+    }
     
-    sim = KuramotoJerarquico(niveles=5, metros_por_plataforma=3,
-                             topologia_intra='scale_free',
-                             topologia_inter='malla',
-                             K_lateral=0.3)
+    intra, inter = configs.get(opcion, ('scale_free', 'malla'))
+    K_lat = 0.3 if opcion in ['5', '6', '7'] else 0.5
+    
+    sim = Hito5_KuramotoJerarquico(niveles=5, metros_por_plataforma=3,
+                                    topologia_intra=intra,
+                                    topologia_inter=inter,
+                                    K_lateral=K_lat)
     
     t, r_nivel = sim.simular(T=25, puntos=150)
     
@@ -653,40 +668,45 @@ def ejecutar_hito5():
         estado = "✅ COHERENTE" if r > 0.8 else "⚠️ DIFUSO" if r > 0.5 else "❌ CAÓTICO"
         output_lines.append(f"Nivel {i}: r={r:.3f} {estado}")
     
-    # GRÁFICA: Evolución temporal
+    # Gráfica
     fig, axes = plt.subplots(2, 1, figsize=(12, 8))
     colores = plt.cm.viridis(np.linspace(0, 1, len(r_nivel)))
     for i, r in enumerate(r_nivel):
         axes[0].plot(t, r, color=colores[i], label=f'N{i}', linewidth=1.5)
     axes[0].set_xlabel('Tiempo')
-    axes[0].set_ylabel('Sincronización r')
+    axes[0].set_ylabel('r')
     axes[0].set_ylim(0, 1.1)
     axes[0].grid(True, alpha=0.3)
     axes[0].legend()
-    axes[0].set_title('Evolución temporal (Scale-free + Malla)')
+    axes[0].set_title(f'Opción {opcion}: {intra} + {inter}')
     
     axes[1].bar(range(len(r_final)), r_final, color=colores)
     axes[1].set_xlabel('Nivel')
     axes[1].set_ylabel('r final')
     axes[1].set_ylim(0, 1.1)
-    axes[1].axhline(y=0.8, color='g', linestyle='--', alpha=0.5, label='Coherente')
-    axes[1].axhline(y=0.5, color='orange', linestyle='--', alpha=0.5, label='Difuso')
+    axes[1].axhline(y=0.8, color='g', linestyle='--', alpha=0.5)
+    axes[1].axhline(y=0.5, color='orange', linestyle='--', alpha=0.5)
     axes[1].grid(True, alpha=0.3)
-    axes[1].legend()
     plt.tight_layout()
     imagenes.append(figura_a_base64(fig))
     
     return "\n".join(output_lines), imagenes
 
+
 # ============================================
-# HITO 6: KuramotoPODB (estados por conexión)
+# HITO 6: KuramotoPODB (con parámetros)
 # ============================================
-def ejecutar_hito6():
-    """Hito 6: KuramotoPODB - Estados P-O-D-B por conexión"""
+def ejecutar_hito6(params):
+    """Hito 6: KuramotoPODB - Estados por conexión"""
     output_lines = []
     imagenes = []
     
-    class KuramotoPODB:
+    # Recoger parámetros
+    niveles = int(params.get('niveles', 3))
+    metros = int(params.get('metros', 4))
+    
+    # Clase específica para este hito (no compartida)
+    class Hito6_KuramotoPODB:
         def __init__(self, niveles=3, metros_por_plataforma=4,
                      topologia_intra='scale_free', topologia_inter='malla',
                      K_base=2.0, K_inter_base=1.5, K_lateral_base=0.3):
@@ -855,82 +875,154 @@ def ejecutar_hito6():
             return sol.t, r_nivel, sol.y
     
     output_lines.append(f"\n{'='*70}")
-    output_lines.append(f"HITO 6: KURAMOTO CON ESTADOS P-O-D-B")
+    output_lines.append(f"HITO 6: PODB (niveles={niveles}, metros={metros})")
     output_lines.append(f"{'='*70}")
     
-    sim = KuramotoPODB(niveles=3, metros_por_plataforma=4,
-                       topologia_intra='scale_free',
-                       topologia_inter='malla')
+    sim = Hito6_KuramotoPODB(niveles=niveles, metros_por_plataforma=metros,
+                              topologia_intra='scale_free',
+                              topologia_inter='malla')
     
     t, r_nivel, theta_hist = sim.simular(T=20, puntos=150)
     
-    output_lines.append("\n=== SINCRONIZACIÓN POR NIVEL ===")
+    output_lines.append("\n=== SINCRONIZACIÓN ===")
     for i, r in enumerate([r[-1] for r in r_nivel]):
         estado = "✅" if r > 0.8 else "⚠️" if r > 0.5 else "❌"
         output_lines.append(f"Nivel {i}: r={r:.3f} {estado}")
     
-    # GRÁFICA: Evolución de sincronización
+    # Gráfica
     fig, ax = plt.subplots(figsize=(10, 5))
     for i, r in enumerate(r_nivel):
         ax.plot(t, r, label=f'Nivel {i}', linewidth=2)
     ax.set_xlabel('Tiempo')
-    ax.set_ylabel('Sincronización r')
+    ax.set_ylabel('r')
     ax.set_ylim(0, 1.1)
     ax.grid(True, alpha=0.3)
     ax.legend()
-    ax.set_title('Evolución de la sincronización por nivel')
+    ax.set_title(f'PODB - {niveles} niveles, {metros} metrónomos')
     imagenes.append(figura_a_base64(fig))
     
     return "\n".join(output_lines), imagenes
 
+
 # ============================================
-# HITO 7: MacroPODB (versión unificada)
+# HITO 7: MacroPODB (independiente, con parámetros)
 # ============================================
-def ejecutar_hito7():
-    """Hito 7: MacroPODB - Versión unificada con todas las opciones"""
-    global KuramotoPODB
+def ejecutar_hito7(params):
+    """Hito 7: MacroPODB - Versión unificada"""
     output_lines = []
     imagenes = []
     
-    # Aquí iría el código completo de MacroPODB.py
-    # Por ahora, una versión simplificada que llama a los otros hitos
+    # Recoger parámetros
+    opcion = params.get('opcion', '6')
+    niveles = int(params.get('niveles', 5))
+    modo = params.get('modo', 'podb')
+    
     output_lines.append(f"\n{'='*80}")
-    output_lines.append(f"HITO 7: MACRO PODB (VERSIÓN UNIFICADA)")
+    output_lines.append(f"HITO 7: MACRO PODB")
     output_lines.append(f"{'='*80}")
-    output_lines.append("\nEste script integra todas las funcionalidades anteriores.")
-    output_lines.append("Para resultados detallados, ejecute los hitos individuales.")
+    output_lines.append(f"Parámetros: opción={opcion}, niveles={niveles}, modo={modo}")
     
-    # Simulación rápida con opción 6
-    output_lines.append("\n--- Ejecutando opción 6 (Scale-free + Malla) ---")
+    # Clase específica para este hito (copia simplificada)
+    class Hito7_MacroPODB:
+        def __init__(self, opcion=6, niveles=5, metros_por_plataforma=3, modo='podb'):
+            self.opcion = opcion
+            self.niveles = niveles
+            self.mpp = metros_por_plataforma
+            self.modo = modo
+            
+            self.plataformas_por_nivel = [3**i for i in range(niveles)]
+            self.osciladores_por_nivel = [p * metros_por_plataforma for p in self.plataformas_por_nivel]
+            self.total = sum(self.osciladores_por_nivel)
+            
+            np.random.seed(42)
+            self.omega = np.concatenate([
+                np.random.normal(1.0, 0.1 + 0.02*i, n)
+                for i, n in enumerate(self.osciladores_por_nivel)
+            ])
+            
+            self.indices = self._construir_indices()
+        
+        def _construir_indices(self):
+            indices = []
+            start = 0
+            for n in self.osciladores_por_nivel:
+                indices.append(slice(start, start + n))
+                start += n
+            return indices
+        
+        def dynamics_simple(self, t, theta):
+            # Versión simplificada para simulación rápida
+            dtheta = np.zeros_like(theta)
+            K_intra = 2.0
+            K_inter = 1.5
+            
+            theta0 = theta[self.indices[0]]
+            for i in range(len(theta0)):
+                dtheta[self.indices[0]][i] = self.omega[self.indices[0]][i] + (K_intra/len(theta0)) * np.sum(np.sin(theta0 - theta0[i]))
+            
+            for nivel in range(1, self.niveles):
+                n_plt = 3**nivel
+                n_por_plt = self.mpp
+                theta_n = theta[self.indices[nivel]].reshape(n_plt, n_por_plt)
+                dtheta_n = np.zeros_like(theta_n)
+                
+                theta_prev = theta[self.indices[nivel-1]].reshape(3**(nivel-1), self.mpp)
+                r_prev = np.mean(np.exp(1j * theta_prev), axis=1)
+                phi_prev = np.angle(r_prev)
+                
+                for p in range(n_plt):
+                    madre = p // 3
+                    for i in range(n_por_plt):
+                        intra = (K_intra/n_por_plt) * np.sum(np.sin(theta_n[p] - theta_n[p, i]))
+                        inter = K_inter * np.sin(phi_prev[madre] - theta_n[p, i])
+                        idx_global = self.indices[nivel].start + p*n_por_plt + i
+                        dtheta_n[p, i] = self.omega[idx_global] + intra + inter
+                
+                dtheta[self.indices[nivel]] = dtheta_n.flatten()
+            return dtheta
+        
+        def simular(self, T=15, puntos=100):
+            theta0 = np.random.uniform(-np.pi, np.pi, self.total)
+            sol = solve_ivp(self.dynamics_simple, (0, T), theta0,
+                            t_eval=np.linspace(0, T, puntos),
+                            method='RK45', rtol=1e-2)
+            r_nivel = []
+            for nivel in range(self.niveles):
+                fases = sol.y[self.indices[nivel]]
+                if len(fases.shape) == 1:
+                    r = np.abs(np.mean(np.exp(1j * fases), axis=0))
+                else:
+                    r = np.abs(np.mean(np.exp(1j * fases), axis=0))
+                r_nivel.append(r)
+            return sol.t, r_nivel
     
-    # Reutilizamos la clase del Hito 6
-    sim = KuramotoPODB(niveles=5, metros_por_plataforma=3,
-                       topologia_intra='scale_free',
-                       topologia_inter='malla')
+    output_lines.append("\n--- Ejecutando simulación ---")
     
-    t, r_nivel, theta_hist = sim.simular(T=15, puntos=100)
+    sim = Hito7_MacroPODB(opcion=int(opcion), niveles=niveles, modo=modo)
+    t, r_nivel = sim.simular(T=15, puntos=100)
     
     output_lines.append("\n=== RESULTADOS ===")
     for i, r in enumerate([r[-1] for r in r_nivel]):
         estado = "✅" if r > 0.8 else "⚠️" if r > 0.5 else "❌"
         output_lines.append(f"Nivel {i}: r={r:.3f} {estado}")
     
-    # GRÁFICA
+    # Gráfica
     fig, ax = plt.subplots(figsize=(10, 5))
     for i, r in enumerate(r_nivel):
         ax.plot(t, r, label=f'Nivel {i}', linewidth=2)
     ax.set_xlabel('Tiempo')
-    ax.set_ylabel('Sincronización r')
+    ax.set_ylabel('r')
     ax.set_ylim(0, 1.1)
     ax.grid(True, alpha=0.3)
     ax.legend()
-    ax.set_title('MacroPODB - Opción 6 (Scale-free + Malla)')
+    ax.set_title(f'MacroPODB - Opción {opcion}, {niveles} niveles')
     imagenes.append(figura_a_base64(fig))
     
     return "\n".join(output_lines), imagenes
 
+
 # ============================================
-# ENDPOINT PRINCIPAL - MAPEO DIRECTO
+# ENDPOINT PRINCIPAL
 # ============================================
 
 @app.route('/', methods=['GET'])
@@ -938,36 +1030,42 @@ def home():
     return jsonify({
         'status': 'ok',
         'mensaje': 'Backend Kuramoto - Framework P-O-D-B',
-        'scripts_disponibles': [
-            'hito1', 'hito2', 'hito3', 'hito4', 'hito5', 'hito6', 'hito7'
-        ]
+        'scripts_disponibles': ['hito1', 'hito2', 'hito3', 'hito4', 'hito5', 'hito6', 'hito7']
     })
 
 @app.route('/ejecutar/<script>', methods=['GET'])
 def ejecutar_script(script):
     try:
-        # MAPEO DIRECTO - SIN FUNCIONES INTERMEDIAS
+        # Recoger parámetros de la URL
+        params = {
+            'niveles': request.args.get('niveles', '6'),
+            'opcion': request.args.get('opcion', '6'),
+            'metros': request.args.get('metros', '4'),
+            'modo': request.args.get('modo', 'podb')
+        }
+        
+        # Mapeo directo - cada hito es completamente independiente
         if script == 'hito1':
-            output, imagenes = ejecutar_hito1()
+            output, imagenes = ejecutar_hito1(params)
         elif script == 'hito2':
-            output, imagenes = ejecutar_hito2()
+            output, imagenes = ejecutar_hito2(params)
         elif script == 'hito3':
-            output, imagenes = ejecutar_hito3()
+            output, imagenes = ejecutar_hito3(params)
         elif script == 'hito4':
-            output, imagenes = ejecutar_hito4()
+            output, imagenes = ejecutar_hito4(params)
         elif script == 'hito5':
-            output, imagenes = ejecutar_hito5()
+            output, imagenes = ejecutar_hito5(params)
         elif script == 'hito6':
-            output, imagenes = ejecutar_hito6()
+            output, imagenes = ejecutar_hito6(params)
         elif script == 'hito7':
-            output, imagenes = ejecutar_hito7()
+            output, imagenes = ejecutar_hito7(params)
         else:
             return jsonify({'success': False, 'error': f'Script "{script}" no encontrado'})
 
         respuesta = {
             'success': True, 
             'output': output, 
-            'imagenes': imagenes  # ← LISTA DE IMÁGENES
+            'imagenes': imagenes
         }
         
         callback = request.args.get('callback')
