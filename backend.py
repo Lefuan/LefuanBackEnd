@@ -1054,13 +1054,13 @@ def ejecutar_hito6(params):
             # Calcular matriz y valores
             matriz_estados3 = np.zeros((n_osc3, n_osc3))
             valores3 = []
-        for i in range(n_osc3):
-            for j in range(n_osc3):
-                if i != j:
-                    delta = theta_nivel3[i] - theta_nivel3[j]
-                    valor = sim._estado_a_partir_de_fase(delta)
-                    matriz_estados3[i, j] = valor
-                    valores3.append(valor)
+            for i in range(n_osc3):
+                for j in range(n_osc3):
+                    if i != j:
+                        delta = theta_nivel3[i] - theta_nivel3[j]
+                        valor = sim._estado_a_partir_de_fase(delta)
+                        matriz_estados3[i, j] = valor
+                        valores3.append(valor)
     
         # GRÁFICA NIVEL 3
         fig5, axes5 = plt.subplots(1, 2, figsize=(14, 5))
