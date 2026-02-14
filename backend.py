@@ -1388,7 +1388,7 @@ def ejecutar_hito7(params):
     for i, r in enumerate([r[-1] for r in r_nivel]):
         estado = "✅" if r > 0.8 else "⚠️" if r > 0.5 else "❌"
         output_lines.append(f"Nivel {i}: r={r:.3f} {estado}")
-    
+        
     # ============================================
     # GRÁFICA 1: Evolución de sincronización
     # ============================================
@@ -1404,56 +1404,57 @@ def ejecutar_hito7(params):
     imagenes.append(figura_a_base64(fig1))
     
     # ============================================
-    # GRÁFICA 2: Estados Nivel 0 (si modo PODB)
+    # GRÁFICAS DE ESTADOS PARA CADA NIVEL (si modo PODB)
     # ============================================
     if modo == 'podb' and niveles > 0:
         theta_final = theta_hist[:, -1]
+    
+        for nivel in range(min(niveles, 4)):  # Limitar a 4 niveles para no saturar
+            idx_start = sim.indices[nivel].start
+            theta_nivel = theta_final[idx_start:idx_start + 3]  # 3 metrónomos por plataforma
+            n_osc = len(theta_nivel)
         
-        # Nivel 0
-        idx0 = sim.indices[0]
-        theta_nivel0 = theta_final[idx0]
-        n_osc0 = len(theta_nivel0)
+            fig, axes = plt.subplots(1, 2, figsize=(14, 5))
         
-        fig2, axes2 = plt.subplots(1, 2, figsize=(14, 5))
+            # Matriz de estados
+            matriz_estados = np.zeros((n_osc, n_osc))
+            valores = []
+            for i in range(n_osc):
+                for j in range(n_osc):
+                    if i != j:
+                        delta = theta_nivel[i] - theta_nivel[j]
+                        valor = sim._estado_a_partir_de_fase(delta)
+                        matriz_estados[i, j] = valor
+                        valores.append(valor)
         
-        matriz_estados0 = np.zeros((n_osc0, n_osc0))
-        valores0 = []
-        for i in range(n_osc0):
-            for j in range(n_osc0):
-                if i != j:
-                    delta = theta_nivel0[i] - theta_nivel0[j]
-                    valor = sim._estado_a_partir_de_fase(delta)
-                    matriz_estados0[i, j] = valor
-                    valores0.append(valor)
+            im = axes[0].imshow(matriz_estados, cmap='RdYlGn', vmin=0, vmax=1)
+            titulo = 'Base' if nivel == 0 else f'Nivel {nivel}, Plataforma 0'
+            axes[0].set_title(f'Estados - {titulo}')
+            axes[0].set_xlabel('Oscilador j')
+            axes[0].set_ylabel('Oscilador i')
+            plt.colorbar(im, ax=axes[0])
         
-        im0 = axes2[0].imshow(matriz_estados0, cmap='RdYlGn', vmin=0, vmax=1)
-        axes2[0].set_title('Estados - Nivel 0 (Base)')
-        axes2[0].set_xlabel('Oscilador j')
-        axes2[0].set_ylabel('Oscilador i')
-        plt.colorbar(im0, ax=axes2[0])
+            axes[1].hist(valores, bins=20, color='skyblue', edgecolor='black')
+            axes[1].axvline(x=0.8, color='blue', linestyle='--', label='P')
+            axes[1].axvline(x=0.3, color='green', linestyle='--', label='O')
+            axes[1].axvline(x=0.1, color='orange', linestyle='--', label='D')
+            axes[1].set_xlabel('Valor de estado')
+            axes[1].set_ylabel('Frecuencia')
+            axes[1].set_title(f'Distribución - {titulo}')
+            axes[1].legend()
         
-        axes2[1].hist(valores0, bins=20, color='skyblue', edgecolor='black')
-        axes2[1].axvline(x=0.8, color='blue', linestyle='--', label='P')
-        axes2[1].axvline(x=0.3, color='green', linestyle='--', label='O')
-        axes2[1].axvline(x=0.1, color='orange', linestyle='--', label='D')
-        axes2[1].set_xlabel('Valor de estado')
-        axes2[1].set_ylabel('Frecuencia')
-        axes2[1].set_title('Distribución - Nivel 0')
-        axes2[1].legend()
+            plt.tight_layout()
+            imagenes.append(figura_a_base64(fig))
         
-        plt.tight_layout()
-        imagenes.append(figura_a_base64(fig2))
-        
-        # 📝 ESTADÍSTICAS NIVEL 0
-        valores_array0 = np.array(valores0)
-        output_lines.append(f"\n📊 Estadísticas PODB - Nivel 0")
-        output_lines.append(f"  P: {np.sum(valores_array0 >= 0.8)} ({np.sum(valores_array0 >= 0.8)/len(valores_array0)*100:.1f}%)")
-        output_lines.append(f"  O: {np.sum((valores_array0 >= 0.3) & (valores_array0 < 0.8))} ({np.sum((valores_array0 >= 0.3) & (valores_array0 < 0.8))/len(valores_array0)*100:.1f}%)")
-        output_lines.append(f"  D: {np.sum((valores_array0 >= 0.1) & (valores_array0 < 0.3))} ({np.sum((valores_array0 >= 0.1) & (valores_array0 < 0.3))/len(valores_array0)*100:.1f}%)")
-        output_lines.append(f"  B: {np.sum(valores_array0 < 0.1)} ({np.sum(valores_array0 < 0.1)/len(valores_array0)*100:.1f}%)")
+            # 📝 ESTADÍSTICAS
+            valores_array = np.array(valores)
+            output_lines.append(f"\n📊 Estadísticas PODB - {titulo}")
+            output_lines.append(f"  P: {np.sum(valores_array >= 0.8)} ({np.sum(valores_array >= 0.8)/len(valores_array)*100:.1f}%)")
+            output_lines.append(f"  O: {np.sum((valores_array >= 0.3) & (valores_array < 0.8))} ({np.sum((valores_array >= 0.3) & (valores_array < 0.8))/len(valores_array)*100:.1f}%)")
+            output_lines.append(f"  D: {np.sum((valores_array >= 0.1) & (valores_array < 0.3))} ({np.sum((valores_array >= 0.1) & (valores_array < 0.3))/len(valores_array)*100:.1f}%)")
+            output_lines.append(f"  B: {np.sum(valores_array < 0.1)} ({np.sum(valores_array < 0.1)/len(valores_array)*100:.1f}%)")
     
     return "\n".join(output_lines), imagenes
-
 
 # ============================================
 # ENDPOINT PRINCIPAL
