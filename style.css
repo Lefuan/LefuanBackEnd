@@ -1,0 +1,204 @@
+body {
+    background-color: #0d1117;
+    color: #e6edf3;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    text-align: center;
+}
+
+header { padding: 50px 20px; }
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
+    gap: 20px;
+    padding: 20px;
+    max-width: 1500px;
+    margin: 0 auto;
+    /* Esto centra las cajas (FÃ­sica, Mates, Bloodbowl) */
+    justify-content: center;
+}
+
+/* Esta regla va AFUERA de la anterior */
+.grid-container > div[style*="flex"] {
+    grid-column: 1 / -1;
+}
+
+.card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    padding: 20px;
+    border-radius: 10px;
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    border-color: #58a6ff;
+}
+
+.btn {
+    display: inline-block;
+    margin-top: 0px;
+    padding: 10px 20px;
+    background-color: #238636;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.social-hub {
+    grid-column: 1 / -1; /* Si estÃ¡s usando CSS Grid en el contenedor padre, esto hace que ocupe todas las columnas */
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px 0;
+    background: #161b22; /* Un tono ligeramente distinto al fondo para resaltarlo */
+    border-top: 1px solid #30363d;
+    border-bottom: 1px solid #30363d;
+}
+
+.links-container {
+    display: flex;
+    flex-direction: row; /* Fuerza la lÃ­nea Ãºnica */
+    justify-content: center; /* Centra los iconos */
+    align-items: center;
+    gap: 20px; /* Espacio entre botones */
+    flex-wrap: nowrap; /* Evita que se bajen a la siguiente lÃ­nea si hay poco espacio */
+    overflow-x: hidden; /* Si la pantalla es muy pequeÃ±a, no permite scroll lateral en vez de romperse */
+    padding: 20px;
+}
+
+.social-link {
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.9em;
+    transition: 0.3s;
+    color: #fff;
+    min-width: 100px;
+}
+
+.btn-pdf {
+    background-color: #222 !important; /* Color lila para fÃ­sica */
+    color: #4caf50 !important;
+    font-weight: bold;
+}
+
+.btn-volver {
+    background: transparent;
+    border: none;
+    color: #8b949e;
+    cursor: pointer;
+    margin-top: 0px;
+    font-size: 0.8em;
+}
+
+.btn-volver:hover {
+    color: white;
+}
+
+.break {
+    flex-basis: 100%;
+    height: 0;
+}
+
+/* Colores temÃ¡ticos */
+.math { border-left: 5px solid #79c0ff; }
+.bloodbowl { border-left: 5px solid #da3633; }
+.physics { border-left: 5px solid #d2a8ff; }
+.essay { border-left: 5px solid #3fb950; }
+/* Colores de marca */
+.reddit { background: #FF4500; }
+.youtube { background: #FF0000; }
+.podcast { background: #8735fb; } /* Color genÃ©rico de podcast */
+.github { background: #24292e; border: 1px solid #444; }
+.archive { background: #000000; border: 1px solid #666; }
+.Images { background: #bd081c !important; }
+
+.social-link:hover {
+    filter: brightness(1.2);
+    transform: scale(1.05);
+}
+
+.desplegable {
+    display: flex;
+    flex-wrap: wrap; /* Permite que el .break funcione */
+    justify-content: center;
+    gap: 10px;
+}
+
+/* Contenedor del botÃ³n partido */
+.btn-group {
+    display: inline-flex;
+    vertical-align: middle;
+    margin: 5px;
+}
+
+/* El botÃ³n de la izquierda (EspaÃ±ol) */
+.btn-group .btn-left {
+    margin-top: 0px; /* Para alinear con tu .btn actual */
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: 1px solid rgba(0,0,0,0.2);
+}
+
+/* El botÃ³n de la derecha (InglÃ©s) */
+.btn-group .btn-right {
+    margin-top: 0px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+#pdf-drawer {
+    position: fixed !important; /* Â¡ESTO ES CLAVE! */
+    left: 20px !important; /* Pegado al borde izquierdo */
+    top: 120px !important; /* Debajo del header */
+    right: 20px !important; /* Con margen derecho */
+    bottom: 50px !important; /* Encima del footer */
+    width: auto !important; /* Se ajusta entre left y right */
+    height: auto !important;
+    max-width: none !important;
+    margin: 0 !important; /* Elimina todos los mÃ¡rgenes */
+    padding: 0;
+    background: rgba(255,255,255,0.02);
+    border: 3px solid orange;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    box-shadow: 0 0 20px rgba(255,165,0,0.3);
+    z-index: 1000; /* Por encima de todo */
+}
+
+#pdf-drawer .pdf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: #111;
+    border-bottom: 2px solid orange;
+    border-radius: 12px 12px 0 0;
+}
+
+#pdf-title {
+    font-size: 1.4em;
+    color: #00ffe1;
+    margin: 0;
+}
+
+.pdf-actions {
+    display: flex;
+    gap: 10px;
+}
+
+#pdf-frame {
+    width: 100% !important;
+    height: calc(100% - 50px) !important; /* 100% del contenedor menos el header */
+    min-height: 600px;
+    border: none;
+    border-radius: 0 0 12px 12px;
+    background: #000;
+}
