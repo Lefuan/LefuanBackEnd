@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from collections import defaultdict
 import sys
 import io
 import base64
@@ -1109,9 +1110,7 @@ def ejecutar_hito7(params):
     """Hito 7: MacroPODB - Versión unificada completa"""
     output_lines = []
     imagenes = []
-
-    from collections import defaultdict
-    
+        
     # Recoger parámetros
     opcion = params.get('opcion', '6')
     niveles = int(params.get('niveles', 5))
