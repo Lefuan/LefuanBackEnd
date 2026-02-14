@@ -5,40 +5,249 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌀 Simulaciones Kuramoto - Framework P-O-D-B</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* ===== CSS EXACTAMENTE IGUAL QUE LA PÁGINA PRINCIPAL ===== */
         body {
+            background-color: #0d1117;
+            color: #e6edf3;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+
+        header { 
+            padding: 50px 20px; 
+            position: relative; 
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1500px;
+            margin: 0 auto;
+            justify-content: center; 
+        }
+
+        .grid-container > div[style*="flex"] {
+            grid-column: 1 / -1;
+        }
+
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            padding: 20px;
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            border-color: #58a6ff;
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 0px;
+            padding: 10px 20px;
+            background-color: #238636;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .btn:hover {
+            filter: brightness(1.2);
+        }
+
+        .btn:disabled {
+            background-color: #4a4a5a;
+            cursor: not-allowed;
+            filter: none;
+        }
+
+        .social-hub {
+            grid-column: 1 / -1;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px 0;
+            background: #161b22;
+            border-top: 1px solid #30363d;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .links-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: nowrap;
+            overflow-x: hidden;
             padding: 20px;
         }
+
+        .social-link {
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: 0.3s;
+            color: #fff;
+            min-width: 100px;
+        }
+
+        .btn-pdf {
+            background-color: #222 !important;
+            color: #4caf50 !important;
+            font-weight: bold;
+        }
+
+        .btn-volver {
+            background: transparent;
+            border: none;
+            color: #8b949e;
+            cursor: pointer;
+            margin-top: 0px;
+            font-size: 0.8em;
+        }
+
+        .btn-volver:hover {
+            color: white;
+        }
+
+        .break {
+            flex-basis: 100%;
+            height: 0;
+        }
+
+        /* Colores temáticos */
+        .math { border-left: 5px solid #79c0ff; }
+        .bloodbowl { border-left: 5px solid #da3633; }
+        .physics { border-left: 5px solid #d2a8ff; }
+        .essay { border-left: 5px solid #3fb950; }
+
+        /* Colores de marca */
+        .reddit { background: #FF4500; }
+        .youtube { background: #FF0000; }
+        .podcast { background: #8735fb; }
+        .github { background: #24292e; border: 1px solid #444; }
+        .archive { background: #000000; border: 1px solid #666; }
+        .Images { background: #bd081c !important; }
+
+        .social-link:hover {
+            filter: brightness(1.2);
+            transform: scale(1.05);
+        }
+
+        .desplegable {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-group {
+            display: inline-flex;
+            vertical-align: middle;
+            margin: 5px;
+        }
+
+        .btn-group .btn-left {
+            margin-top: 0px;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-right: 1px solid rgba(0,0,0,0.2);
+        }
+
+        .btn-group .btn-right {
+            margin-top: 0px;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
+        #pdf-drawer {
+            position: fixed !important;
+            left: 20px !important;
+            top: 120px !important;
+            right: 20px !important;
+            bottom: 50px !important;
+            width: auto !important;
+            height: auto !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0;
+            background: rgba(255,255,255,0.02);
+            border: 3px solid orange;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            box-shadow: 0 0 20px rgba(255,165,0,0.3);
+            z-index: 1000;
+        }
+
+        #pdf-drawer .pdf-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: #111;
+            border-bottom: 2px solid orange;
+            border-radius: 12px 12px 0 0;
+        }
+
+        #pdf-title {
+            font-size: 1.4em;
+            color: #00ffe1;
+            margin: 0;
+        }
+
+        .pdf-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        #pdf-frame {
+            width: 100% !important;
+            height: calc(100% - 50px) !important;
+            min-height: 600px;
+            border: none;
+            border-radius: 0 0 12px 12px;
+            background: #000;
+        }
+
+        /* ===== ESTILOS PROPIOS DE LA SIMULACIÓN ===== */
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            background: #161b22;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid #30363d;
             overflow: hidden;
+            margin-top: 30px;
         }
-        .header {
-            background: linear-gradient(45deg, #2c3e50, #3498db);
-            color: white;
+
+        .content {
             padding: 30px;
-            text-align: center;
         }
-        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
-        .header p { font-size: 1.1em; opacity: 0.9; }
-        .content { padding: 30px; }
 
         .selector-panel {
-            background: #2c2c3a;
+            background: #161b22;
             border-radius: 15px;
             padding: 25px;
             margin-bottom: 30px;
-            border: 1px solid #3a3a4a;
+            border: 1px solid #30363d;
         }
+        
         .selector-panel h2 {
-            color: #ffffff;
+            color: #e6edf3;
             margin-bottom: 20px;
             font-size: 1.5em;
         }
@@ -51,58 +260,64 @@
         }
 
         .script-card {
-            background: #3a3a4a; 
+            background: #0d1117;
+            border: 1px solid #30363d;
             border-radius: 12px;
             padding: 20px;
             cursor: pointer;
-            border: 2px solid transparent;
             transition: all 0.3s ease;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
+        
         .script-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
-            background: #4a4a5a;
+            border-color: #58a6ff;
         }
+        
         .script-card.selected {
-            border-color: #66ccff;
-            background: #4a4a5a;
+            border-color: #58a6ff;
+            background: #1a1f2a;
         }
+        
         .script-name {
             font-size: 1.3em;
             font-weight: bold;
-            color: #ffffff;
+            color: #e6edf3;
             margin-bottom: 8px;
         }
+        
         .script-desc {
-            color: #cccccc;
+            color: #8b949e;
             font-size: 0.95em;
             margin-bottom: 15px;
             line-height: 1.4;
         }
+        
         .script-badge {
             display: inline-block;
             padding: 4px 10px;
-            background: #2c2c3a;
-            color: #66ccff;
-            border: 1px solid #66ccff;
+            background: #0d1117;
+            color: #58a6ff;
+            border: 1px solid #58a6ff;
             border-radius: 20px;
             font-size: 0.85em;
             font-weight: 500;
         }
 
         .param-panel {
-            background: #3a3a4a;
+            background: #0d1117;
+            border: 1px solid #30363d;
             border-radius: 10px;
             padding: 20px;
             margin: 20px 0;
-            border: 1px solid #4a4a5a;
         }
+        
         .param-panel h4 {
-            color: #ffffff;
+            color: #e6edf3;
             margin-bottom: 15px;
             font-size: 1.1em;
         }
+        
         .param-row {
             margin: 10px 0;
             display: flex;
@@ -110,66 +325,72 @@
             gap: 15px;
             flex-wrap: wrap;
         }
+        
         .param-row label {
             font-weight: 500;
-            color: #cccccc;
+            color: #8b949e;
             min-width: 150px;
         }
+        
         .param-row select {
             padding: 8px 12px;
-            border: 1px solid #4a4a5a;
+            border: 1px solid #30363d;
             border-radius: 5px;
             font-size: 14px;
-            background: white;
+            background: #0d1117;
+            color: #e6edf3;
             cursor: pointer;
         }
+        
         .param-row select:hover {
-            border-color: #66ccff;
+            border-color: #58a6ff;
         }
 
         .control-panel {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
+            background: transparent;
+            padding: 20px 0;
             margin-top: 20px;
-            border: 1px solid #dee2e6;
         }
+
         .btn-ejecutar {
-            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            background-color: #238636;
             color: white;
             border: none;
             padding: 15px 40px;
             font-size: 1.2em;
-            border-radius: 50px;
+            border-radius: 5px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: bold;
-            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
         }
+        
         .btn-ejecutar:hover {
+            filter: brightness(1.2);
             transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
         }
+        
         .btn-ejecutar:disabled {
-            background: #4a4a5a;
+            background-color: #4a4a5a;
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
+            filter: none;
         }
 
         .results {
             margin-top: 30px;
-            border-top: 2px solid #e9ecef;
+            border-top: 2px solid #30363d;
             padding-top: 25px;
         }
+        
         .results h3 {
-            color: #2c3e50;
+            color: #e6edf3;
             margin-bottom: 15px;
             font-size: 1.3em;
         }
+        
         #output {
-            background: #1e1e1e;
-            color: #d4d4d4;
+            background: #0d1117;
+            color: #e6edf3;
             padding: 20px;
             border-radius: 10px;
             font-family: 'Courier New', monospace;
@@ -179,35 +400,43 @@
             max-height: 400px;
             overflow-y: auto;
             margin-bottom: 20px;
-            border: 1px solid #333;
+            border: 1px solid #30363d;
         }
+        
         #plots {
             text-align: center;
-            background: #f8f9fa;
+            background: #0d1117;
             padding: 20px;
             border-radius: 10px;
+            border: 1px solid #30363d;
         }
+        
         #plots img {
             max-width: 100%;
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 1px solid #30363d;
             margin-bottom: 20px;
+        }
+
+        footer {
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid #30363d;
+            color: #8b949e;
         }
     </style>
 </head>
 <body>
-    <div class="container">        
-        <header style="position: relative; text-align: center; margin-bottom: 0; background: linear-gradient(45deg, #2c3e50, #3498db); padding: 30px; color: white;">
-            <h1 style="margin: 0; font-size: 2em;">LEFUAN</h1>
-            <p style="margin: 0; font-size: 1em;">Exploraciones en Laniakea: Ciencia, Estrategia y Pensamiento</p>
-            <img src="https://lefuan.neocities.org/Vida.png" alt="Logo Lefuan" 
-                 style="position: absolute; right: 15%; top: 50%; transform: translateY(-50%); height: 140px; width: auto; border-radius: 8px;">
-        </header>
-        <div class="header">
-            <h1>🌀 Framework P-O-D-B</h1>
-            <p>Simulaciones de Kuramoto jerárquico con estados Partícula-Onda-Difuso-Borrado</p>
-        </div>
+    <!-- HEADER IDÉNTICO AL DE LA PÁGINA PRINCIPAL -->
+    <header style="position: relative; text-align: center; margin-bottom: 30px;">
+        <h1 style="margin: 0; font-size: 2em;">LEFUAN</h1>
+        <p style="margin: 0; font-size: 1em;">Exploraciones en Laniakea: Ciencia, Estrategia y Pensamiento</p>
+        <img src="https://lefuan.neocities.org/Vida.png" alt="Logo Lefuan" 
+             style="position: absolute; right: 15%; top: 50%; transform: translateY(-50%); height: 140px; width: auto; border-radius: 8px;">
+    </header>
 
+    <!-- CONTENEDOR PRINCIPAL DE LA SIMULACIÓN -->
+    <div class="container">
         <div class="content">
             <div class="selector-panel">
                 <h2>📁 Selecciona un script para ejecutar:</h2>
@@ -235,6 +464,10 @@
             </div>
         </div>
     </div>
+
+    <footer>
+        <p>Lefuan ϕ 2025 - Creado en Laniakea</p>
+    </footer>
 
     <script>
         // ============================================
@@ -269,7 +502,7 @@
                 { nombre: 'niveles', tipo: 'select', opciones: [2,3,4], default: 3, label: 'Niveles' },
                 { nombre: 'metros', tipo: 'select', opciones: [3,4], default: 4, label: 'Metrónomos/plataforma' }
             ],
-            'hito7': [  // ← AÑADIDO
+            'hito7': [
                 { nombre: 'opcion', tipo: 'select', opciones: [1,2,3,4,5,6,7], default: 6, label: 'Opción de topología' },
                 { nombre: 'niveles', tipo: 'select', opciones: [3,4,5,6], default: 5, label: 'Número de niveles' },
                 { nombre: 'modo', tipo: 'select', opciones: ['clasico', 'podb'], default: 'podb', label: 'Modo de simulación' }
