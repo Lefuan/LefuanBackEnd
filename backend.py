@@ -990,12 +990,12 @@ def ejecutar_hito6(params):
         if niveles > 1:
         # ... (tu código de gráfica) ...
         # 📝 ESTADÍSTICAS NIVEL 1
-        valores_array1 = np.array(valores1)
-        output_lines.append(f"\n📊 Estadísticas de estados - Nivel 1, Plataforma 0")
-        output_lines.append(f"  Estado P (≥0.8): {np.sum(valores_array1 >= 0.8)} ({np.sum(valores_array1 >= 0.8)/len(valores_array1)*100:.1f}%)")
-        output_lines.append(f"  Estado O (0.3-0.8): {np.sum((valores_array1 >= 0.3) & (valores_array1 < 0.8))} ({np.sum((valores_array1 >= 0.3) & (valores_array1 < 0.8))/len(valores_array1)*100:.1f}%)")
-        output_lines.append(f"  Estado D (0.1-0.3): {np.sum((valores_array1 >= 0.1) & (valores_array1 < 0.3))} ({np.sum((valores_array1 >= 0.1) & (valores_array1 < 0.3))/len(valores_array1)*100:.1f}%)")
-        output_lines.append(f"  Estado B (<0.1): {np.sum(valores_array1 < 0.1)} ({np.sum(valores_array1 < 0.1)/len(valores_array1)*100:.1f}%)")
+            valores_array1 = np.array(valores1)
+            output_lines.append(f"\n📊 Estadísticas de estados - Nivel 1, Plataforma 0")
+            output_lines.append(f"  Estado P (≥0.8): {np.sum(valores_array1 >= 0.8)} ({np.sum(valores_array1 >= 0.8)/len(valores_array1)*100:.1f}%)")
+            output_lines.append(f"  Estado O (0.3-0.8): {np.sum((valores_array1 >= 0.3) & (valores_array1 < 0.8))} ({np.sum((valores_array1 >= 0.3) & (valores_array1 < 0.8))/len(valores_array1)*100:.1f}%)")
+            output_lines.append(f"  Estado D (0.1-0.3): {np.sum((valores_array1 >= 0.1) & (valores_array1 < 0.3))} ({np.sum((valores_array1 >= 0.1) & (valores_array1 < 0.3))/len(valores_array1)*100:.1f}%)")
+            output_lines.append(f"  Estado B (<0.1): {np.sum(valores_array1 < 0.1)} ({np.sum(valores_array1 < 0.1)/len(valores_array1)*100:.1f}%)")
     
     # ============================================
     # GRÁFICA 4: Visualización de estados Nivel 2 (si existe)
@@ -1036,24 +1036,24 @@ def ejecutar_hito6(params):
         if niveles > 2:
         # ... (tu código de gráfica) ...
         # 📝 ESTADÍSTICAS NIVEL 2
-        valores_array2 = np.array(valores2)
-        output_lines.append(f"\n📊 Estadísticas de estados - Nivel 2, Plataforma 0")
-        output_lines.append(f"  Estado P (≥0.8): {np.sum(valores_array2 >= 0.8)} ({np.sum(valores_array2 >= 0.8)/len(valores_array2)*100:.1f}%)")
-        output_lines.append(f"  Estado O (0.3-0.8): {np.sum((valores_array2 >= 0.3) & (valores_array2 < 0.8))} ({np.sum((valores_array2 >= 0.3) & (valores_array2 < 0.8))/len(valores_array2)*100:.1f}%)")
-        output_lines.append(f"  Estado D (0.1-0.3): {np.sum((valores_array2 >= 0.1) & (valores_array2 < 0.3))} ({np.sum((valores_array2 >= 0.1) & (valores_array2 < 0.3))/len(valores_array2)*100:.1f}%)")
-        output_lines.append(f"  Estado B (<0.1): {np.sum(valores_array2 < 0.1)} ({np.sum(valores_array2 < 0.1)/len(valores_array2)*100:.1f}%)")
+            valores_array2 = np.array(valores2)
+            output_lines.append(f"\n📊 Estadísticas de estados - Nivel 2, Plataforma 0")
+            output_lines.append(f"  Estado P (≥0.8): {np.sum(valores_array2 >= 0.8)} ({np.sum(valores_array2 >= 0.8)/len(valores_array2)*100:.1f}%)")
+            output_lines.append(f"  Estado O (0.3-0.8): {np.sum((valores_array2 >= 0.3) & (valores_array2 < 0.8))} ({np.sum((valores_array2 >= 0.3) & (valores_array2 < 0.8))/len(valores_array2)*100:.1f}%)")
+            output_lines.append(f"  Estado D (0.1-0.3): {np.sum((valores_array2 >= 0.1) & (valores_array2 < 0.3))} ({np.sum((valores_array2 >= 0.1) & (valores_array2 < 0.3))/len(valores_array2)*100:.1f}%)")
+            output_lines.append(f"  Estado B (<0.1): {np.sum(valores_array2 < 0.1)} ({np.sum(valores_array2 < 0.1)/len(valores_array2)*100:.1f}%)")
         
         # ============================================#
         # GRÁFICA 5: Visualización de estados Nivel 3 (si existe)
         # ============================================#    
         if niveles > 3:
-        idx3_start = sim.indices[3].start
-        theta_nivel3 = theta_final[idx3_start:idx3_start + metros]
-        n_osc3 = len(theta_nivel3)
+            idx3_start = sim.indices[3].start
+            theta_nivel3 = theta_final[idx3_start:idx3_start + metros]
+            n_osc3 = len(theta_nivel3)
     
-        # Calcular matriz y valores
-        matriz_estados3 = np.zeros((n_osc3, n_osc3))
-        valores3 = []
+            # Calcular matriz y valores
+            matriz_estados3 = np.zeros((n_osc3, n_osc3))
+            valores3 = []
         for i in range(n_osc3):
             for j in range(n_osc3):
                 if i != j:
@@ -1084,14 +1084,15 @@ def ejecutar_hito6(params):
     
         plt.tight_layout()
         imagenes.append(figura_a_base64(fig5))
-    
+
+        if niveles > 3:
         # 📝 ESTADÍSTICAS NIVEL 3
-        valores_array3 = np.array(valores3)
-        output_lines.append(f"\n📊 Estadísticas de estados - Nivel 3, Plataforma 0")
-        output_lines.append(f"  Estado P (≥0.8): {np.sum(valores_array3 >= 0.8)} ({np.sum(valores_array3 >= 0.8)/len(valores_array3)*100:.1f}%)")
-        output_lines.append(f"  Estado O (0.3-0.8): {np.sum((valores_array3 >= 0.3) & (valores_array3 < 0.8))} ({np.sum((valores_array3 >= 0.3) & (valores_array3 < 0.8))/len(valores_array3)*100:.1f}%)")
-        output_lines.append(f"  Estado D (0.1-0.3): {np.sum((valores_array3 >= 0.1) & (valores_array3 < 0.3))} ({np.sum((valores_array3 >= 0.1) & (valores_array3 < 0.3))/len(valores_array3)*100:.1f}%)")
-        output_lines.append(f"  Estado B (<0.1): {np.sum(valores_array3 < 0.1)} ({np.sum(valores_array3 < 0.1)/len(valores_array3)*100:.1f}%)")
+            valores_array3 = np.array(valores3)
+            output_lines.append(f"\n📊 Estadísticas de estados - Nivel 3, Plataforma 0")
+            output_lines.append(f"  Estado P (≥0.8): {np.sum(valores_array3 >= 0.8)} ({np.sum(valores_array3 >= 0.8)/len(valores_array3)*100:.1f}%)")
+            output_lines.append(f"  Estado O (0.3-0.8): {np.sum((valores_array3 >= 0.3) & (valores_array3 < 0.8))} ({np.sum((valores_array3 >= 0.3) & (valores_array3 < 0.8))/len(valores_array3)*100:.1f}%)")
+            output_lines.append(f"  Estado D (0.1-0.3): {np.sum((valores_array3 >= 0.1) & (valores_array3 < 0.3))} ({np.sum((valores_array3 >= 0.1) & (valores_array3 < 0.3))/len(valores_array3)*100:.1f}%)")
+            output_lines.append(f"  Estado B (<0.1): {np.sum(valores_array3 < 0.1)} ({np.sum(valores_array3 < 0.1)/len(valores_array3)*100:.1f}%)")
 
     # ============================================
     # ESTADÍSTICAS EN OUTPUT
