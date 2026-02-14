@@ -1129,6 +1129,8 @@ def ejecutar_hito7(params):
             self.niveles = niveles
             self.mpp = metros_por_plataforma
             self.modo = modo
+            self.K_base = K_base
+            self.K_inter_base = K_inter_base
             
             # Topologías según opción
             self.topologias = {
@@ -1369,13 +1371,15 @@ def ejecutar_hito7(params):
         opcion=opcion,
         niveles=niveles,
         metros_por_plataforma=3,
-        modo=modo
+        modo=modo,
+        K_base=2.0,
+        K_inter_base=1.5
     )
     
     # Añadir atributos necesarios
-    sim.K_base = K_base
-    sim.K_inter_base = K_inter_base
-    sim.K_lateral = sim.K_lateral  # ya está definido
+    #sim.K_base = K_base
+    #sim.K_inter_base = K_inter_base
+    #sim.K_lateral = sim.K_lateral  # ya está definido
     
     t, r_nivel, theta_hist = sim.simular(T=15, puntos=100)
     
