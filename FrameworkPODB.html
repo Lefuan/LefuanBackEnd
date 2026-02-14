@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RE2M Explorer: Buscador de Isomorfismos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        h1, h2, h3, h4 { color: #333; }
+        h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+        .container { display: flex; gap: 20px; max-width: 1400px; margin: auto; }
+        .panel { flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; align-items: flex-end; }
+        .controls div { display: flex; flex-direction: column; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #e0e0e0; }
+        input[type="number"], input[type="text"], select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+
+        /* Estilos específicos para los inputs de enlace dentro de la matriz */
+        #links-matrix input[type="number"], #links-matrix select {
+             padding: 4px;
+             font-size: 11px;
+             height: 30px;
+        }
+
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        #log { white-space: pre-wrap; background-color: #eee; padding: 10px; border-radius: 4px; max-height: 300px; overflow-y: auto; }
+
+        /* ESTILOS DE RESULTADOS */
+        #results-table td {
+            display: table-cell;
+            vertical-align: middle;
+        }
+        .result-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column; /* Mostrar estado y energía verticalmente */
+            font-size: 0.9em;
+        }
+
+        /* Estilos para el estado del grafo */
+        .node-state { display: inline-block; width: 20px; height: 20px; border-radius: 50%; margin-right: 5px; border: 1px solid #333; }
+        .P { background-color: red; } /* Partícula */
+        .O { background-color: blue; } /* Onda */
+        .D { background-color: darkgray; } /* Difuso */
+        .B { background-color: white; } /* Borrado */
+    </style>
+</head>
+<body>
+
+    <h1>RE2M Explorer: Buscador de Isomorfismos</h1>
+
+    <div class="container">
+        <div class="panel" style="flex: 1.5;">
+            <h2>🛠️ Configuración del Modelo</h2>
+
+            <div class="controls">
+                <div>
+                    <label for="new-node-id">ID (Ej: A, B)</label>
+                    <input type="text" id="new-node-id" maxlength="3" style="width: 80px;">
+                </div>
+                <div>
+                    <label for="new-node-name">Nombre</label>
+                    <input type="text" id="new-node-name">
+                </div>
+                <div>
+                    <label for="new-node-nir">NIR ($k_{min}$)</label>
+                    <input type="number" id="new-node-nir" value="1" min="0" style="width: 80px;">
+                </div>
+                <div>
+                    <label for="new-node-state">Estado Inicial</label>
+                    <select id="new-node-state" style="width: 100px;">
+                        <option value="P">P (Partícula)</option>
+                        <option value="O" selected>O (Onda)</option>
+                        <option value="D">D (Difuso)</option>
+                        <option value="B">B (Borrado)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="is-fixed">Fuente Fija?</label>
+                    <input type="checkbox" id="is-fixed" title="Marca para Nodo Fijo (Fuente Exógena)">
+                </div>
+                <button onclick="addNode()">Añadir Nodo</button>
+            </div>
+
+            <h3>Nodos y Parámetros</h3>
+            <table id="nodes-table">
+                <thead>
+                    <tr><th>ID</th><th>Nombre</th><th>NIR</th><th>Estado Inicial</th><th>Fijo</th><th>Acción</th></tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+
+            <h3>Matriz de Enlaces (Relatividad Informacional)</h3>
+            <p>Define Estado (P/O/D/B), Energía ($\text{E}_{link}$) y Tiempo Propio ($\text{TP}_{origen}$) de Fila → Columna.</p>
+            <table id="links-matrix">
+                <thead>
+                    <tr><th>Origen \ Destino</th></tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+
+            <div style="margin-top: 20px;">
+                <label for="sim-steps">Pasos de Simulación:</label>
+                <input type="number" id="sim-steps" value="2" min="1" style="width: 80px; margin-right: 20px;">
+                <button onclick="runSimulation()">▶️ Ejecutar Simulación</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>⚛️ Resultados y Colapso</h2>
+
+            <h3>Secuencia de Colapso (Historial)</h3>
+            <table id="results-table">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+
+            <h3 style="margin-top: 30px;">🔍 Gestión de Patrones (Triadas)</h3>
+            <div>
+                <label for="pattern-name">Nombre del Patrón</label>
+                <input type="text" id="pattern-name" placeholder="Escribe el nombre del patrón" style="width: 70%; margin-right: 10px;">
+                <button onclick="saveCurrentPattern()">Guardar Patrón Actual</button>
+            </div>
+
+            <h4 style="margin-top: 20px;">Patrones Guardados</h4>
+            <select id="saved-patterns" multiple size="5" style="width: 100%; margin-bottom: 10px;"></select>
+
+            <button onclick="comparePatterns()">Comparar Seleccionados</button>
+            <button onclick="clearPatterns()">Limpiar Patrones</button>
+
+            <h4 style="margin-top: 20px;">Resultado de la Comparación</h4>
+            <div id="comparison-output" style="background-color: #f0f0ff; padding: 10px; border-radius: 4px; min-height: 50px;">
+                Selecciona dos patrones para comparar.
+            </div>
+
+            <h3>Log del Servidor</h3>
+            <pre id="log">Esperando configuración...</pre>
+        </div>
+    </div>
+
+    <script>
+        // Usa la misma URL que funciona en el navegador
+        const API_URL = 'https://peculiar-ilysa-lefuan-f5eb738f.koyeb.app';
+
+        let nodesData = [];
+        let savedPatterns = JSON.parse(localStorage.getItem('re2m_patterns')) || {};
+
+        // ====================================================================
+        // LÓGICA DE LA INTERFAZ (DOM)
+        // ====================================================================
+
+        function addNode() {
+            const id = document.getElementById('new-node-id').value.trim().toUpperCase();
+            const name = document.getElementById('new-node-name').value.trim();
+            const nir = parseFloat(document.getElementById('new-node-nir').value);
+            const state = document.getElementById('new-node-state').value;
+            const fixed = document.getElementById('is-fixed').checked;
+
+            if (!id || !name || isNaN(nir) || nir < 0) {
+                alert("Por favor, complete todos los campos de Nodo correctamente.");
+                return;
+            }
+            if (nodesData.some(n => n.id === id)) {
+                alert(`El ID del nodo "${id}" ya existe.`);
+                return;
+            }
+
+            nodesData.push({ id, name, nir, state, fixed });
+            document.getElementById('new-node-id').value = '';
+            document.getElementById('new-node-name').value = '';
+            document.getElementById('is-fixed').checked = false;
+
+            updateNodesTable();
+            updateLinksMatrix();
+        }
+
+        function removeNode(idToRemove) {
+            nodesData = nodesData.filter(n => n.id !== idToRemove);
+            updateNodesTable();
+            updateLinksMatrix();
+        }
+
+        function updateNodesTable() {
+            const tableBody = document.querySelector('#nodes-table tbody');
+            tableBody.innerHTML = '';
+
+            nodesData.forEach(node => {
+                const row = tableBody.insertRow();
+                row.insertCell().textContent = node.id;
+                row.insertCell().textContent = node.name;
+                row.insertCell().textContent = parseFloat(node.nir).toFixed(1);
+                row.insertCell().textContent = node.state;
+                row.insertCell().textContent = node.fixed ? '✅' : '❌';
+
+                const actionCell = row.insertCell();
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Eliminar';
+                removeBtn.onclick = () => removeNode(node.id);
+                actionCell.appendChild(removeBtn);
+            });
+        }
+
+        // Matriz de Enlaces con Estado, Energía y Tiempo Propio
+        function updateLinksMatrix() {
+            const matrix = document.getElementById('links-matrix');
+            matrix.innerHTML = '';
+
+            const ids = nodesData.map(n => n.id);
+            const thead = matrix.createTHead();
+            const headerRow = thead.insertRow();
+            headerRow.insertCell().textContent = "Origen \\ Destino";
+
+            ids.forEach(id => {
+                headerRow.insertCell().textContent = id;
+            });
+
+            const tbody = matrix.createTBody();
+
+            ids.forEach(originId => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = originId;
+
+                ids.forEach(destId => {
+                    const cell = row.insertCell();
+                    if (originId !== destId) {
+
+                        const container = document.createElement('div');
+                        container.style.display = 'flex';
+                        container.style.flexDirection = 'column';
+                        container.style.gap = '2px';
+                        container.style.fontSize = '10px';
+
+                        // 1. SELECTOR DE ESTADO RELACIONAL (P, O, D, B)
+                        const select = document.createElement('select');
+                        select.id = `link-state-${originId}-${destId}`;
+                        select.title = "Estado Relacional (P, O, D, B)";
+                        select.innerHTML = `
+                            <option value="B" selected>B</option>
+                            <option value="P">P</option>
+                            <option value="O">O</option>
+                            <option value="D">D</option>
+                        `;
+
+                        // 2. ENERGÍA DEL ENLACE (E_link)
+                        const inputEnergy = document.createElement('input');
+                        inputEnergy.type = 'number';
+                        inputEnergy.step = '0.1';
+                        inputEnergy.id = `link-energy-${originId}-${destId}`;
+                        inputEnergy.placeholder = 'E_link';
+                        inputEnergy.value = '0.0';
+                        inputEnergy.title = "Energía del Enlace (E_link)";
+
+                        // 3. TIEMPO PROPIO DEL ORIGEN (TP_link)
+                        const inputTime = document.createElement('input');
+                        inputTime.type = 'number';
+                        inputTime.step = '0.1';
+                        inputTime.id = `link-time-${originId}-${destId}`;
+                        inputTime.placeholder = 'TP_Origen';
+                        inputTime.value = '0.0';
+                        inputTime.title = "Tiempo Propio de Emisión (TP_Origen)";
+
+                        container.appendChild(select);
+                        container.appendChild(inputEnergy);
+                        container.appendChild(inputTime);
+                        cell.appendChild(container);
+
+                    } else {
+                        cell.textContent = '—';
+                        cell.style.backgroundColor = '#f9f9f9';
+                    }
+                });
+            });
+        }
+
+        // Muestra el Historial, incluyendo Estado y Energía
+        function displayResults(historial, nodosInfo, historialEnergias) {
+            const resultsTable = document.getElementById('results-table');
+            resultsTable.innerHTML = '';
+
+            const ids = Object.keys(nodosInfo);
+
+            const thead = resultsTable.createTHead();
+            const headerRow = thead.insertRow();
+            headerRow.insertCell().textContent = 'Paso';
+
+            ids.forEach(id => {
+                headerRow.insertCell().textContent = `${id} (${nodosInfo[id]})`;
+            });
+
+            const tbody = resultsTable.createTBody();
+            historial.forEach((step, index) => {
+                const row = tbody.insertRow();
+                row.insertCell().textContent = index;
+
+                ids.forEach(id => {
+                    const state = step[id];
+                    const energy = historialEnergias[index] ? historialEnergias[index][id] : 'N/A'; // Obtiene la energía
+                    const cell = row.insertCell();
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'result-content';
+
+                    // 1. INDICADOR DE ESTADO (Coherencia)
+                    const stateIndicator = document.createElement('span');
+                    stateIndicator.className = `node-state ${state}`;
+                    stateIndicator.title = `Estado: ${state}`;
+
+                    const stateText = document.createElement('strong');
+                    stateText.textContent = state;
+
+                    // 2. INDICADOR DE ENERGÍA (Entropía)
+                    const energyText = document.createElement('span');
+                    energyText.textContent = `E: ${energy}`;
+                    energyText.style.fontSize = '0.75em';
+                    energyText.style.marginTop = '2px';
+
+                    contentDiv.appendChild(stateIndicator);
+                    contentDiv.appendChild(stateText);
+                    contentDiv.appendChild(energyText);
+                    cell.appendChild(contentDiv);
+                });
+            });
+        }
+
+
+        // ====================================================================
+        // COMUNICACIÓN CON EL BACKEND (API)
+        // ====================================================================
+
+        function prepareDataForAPI() {
+            const pasos = parseInt(document.getElementById('sim-steps').value);
+            const nodes = nodesData.map(n => ({
+                id: n.id,
+                nombre: n.name,
+                nir: n.nir,
+                estado_inicial: n.state,
+                tiempo_propio: 0.0 // Valor inicial requerido por el backend
+            }));
+
+            const enlaces = [];
+            const ids = nodesData.map(n => n.id);
+            const nodos_fijos = nodesData.filter(n => n.fixed).map(n => n.id);
+
+            ids.forEach(originId => {
+                ids.forEach(destId => {
+                    if (originId !== destId) {
+                        const select = document.getElementById(`link-state-${originId}-${destId}`);
+                        const inputEnergy = document.getElementById(`link-energy-${originId}-${destId}`);
+                        const inputTime = document.getElementById(`link-time-${originId}-${destId}`);
+
+                        const estado_relacional = select ? select.value : 'B';
+                        const energia_enlace = inputEnergy ? parseFloat(inputEnergy.value) : 0.0;
+                        const tiempo_propio_origen = inputTime ? parseFloat(inputTime.value) : 0.0;
+
+                        if (estado_relacional !== 'B') {
+                            enlaces.push({
+                                origen_id: originId,
+                                destino_id: destId,
+                                estado_relacional: estado_relacional,
+                                energia_enlace: energia_enlace,
+                                tiempo_propio_origen: tiempo_propio_origen
+                            });
+                        }
+                    }
+                });
+            });
+
+            return {
+                pasos_de_tiempo: pasos,
+                nodos: nodes,
+                enlaces: enlaces,
+                nodos_fijos: nodos_fijos
+            };
+        }
+
+        async function runSimulation() {
+            if (nodesData.length === 0) {
+                alert("Por favor, añada al menos un nodo antes de simular.");
+                return;
+            }
+
+            let data;
+            try {
+                data = prepareDataForAPI();
+            } catch (error) {
+                const logElement = document.getElementById('log');
+                logElement.textContent = `ERROR CRÍTICO AL PREPARAR DATOS (Frontend):\n ${error.message}. Consulte la consola para más detalles.`;
+                console.error("Error al preparar datos:", error);
+                alert("Error al preparar los datos de la simulación. Revisa el log y la consola.");
+                return;
+            }
+
+            const logElement = document.getElementById('log');
+            logElement.textContent = 'Enviando configuración al servidor...';
+
+            try {
+                const response = await fetch(`${API_URL}/simular`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    logElement.textContent = `ÉXITO: ${result.message}\nDATOS ENVIADOS:\n` + JSON.stringify(data, null, 2);
+                    displayResults(result.historial_estados, result.nodos_info, result.historial_energies);
+                } else if (!response.ok) {
+                    logElement.textContent = `ERROR HTTP ${response.status}: El servidor falló al procesar la solicitud. Revise la terminal de Python para el Traceback.`;
+                    console.error("Error del servidor (HTTP):", response.statusText, result);
+                } else {
+                    logElement.textContent = `ERROR LÓGICO: ${result.error}\nVerifique la lógica del servidor.`;
+                    console.error("Error del servidor (Lógico):", result.error);
+                }
+
+            } catch (error) {
+                logElement.textContent = `ERROR DE CONEXIÓN: No se pudo conectar con Flask. Asegúrese de que server.py está corriendo en http://127.0.0.1:5000\nDetalles: ${error}`;
+                console.error("Error de conexión:", error);
+            }
+        }
+
+        // ====================================================================
+        // GESTIÓN DE PATRONES
+        // ====================================================================
+
+        function saveCurrentPattern() {
+            const patternNameInput = document.getElementById('pattern-name');
+            const name = patternNameInput.value.trim();
+
+            const resultsTableBody = document.querySelector('#results-table tbody');
+            if (resultsTableBody.rows.length === 0) {
+                alert("Primero ejecuta una simulación para generar un patrón.");
+                return;
+            }
+            if (!name) {
+                alert("Por favor, introduce un nombre para este patrón.");
+                return;
+            }
+
+            const currentHistorial = [];
+            const ids = nodesData.map(n => n.id);
+
+            const rows = resultsTableBody.rows;
+            for (let i = 0; i < rows.length; i++) {
+                const stepData = {};
+                for (let j = 0; j < ids.length; j++) {
+                    const cell = rows[i].cells[j + 1];
+                    const stateText = cell.querySelector('strong');
+                    stepData[ids[j]] = stateText ? stateText.textContent : 'N/A';
+                }
+                currentHistorial.push(stepData);
+            }
+
+            savedPatterns[name] = {
+                nodos: ids,
+                historial: currentHistorial,
+                timestamp: new Date().toLocaleString()
+            };
+
+            localStorage.setItem('re2m_patterns', JSON.stringify(savedPatterns));
+            alert(`Patrón "${name}" guardado exitosamente.`);
+            patternNameInput.value = '';
+            loadSavedPatterns();
+        }
+
+        function loadSavedPatterns() {
+            const select = document.getElementById('saved-patterns');
+            select.innerHTML = '';
+
+            for (const name in savedPatterns) {
+                const pattern = savedPatterns[name];
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = `${name} (${pattern.nodos.join(', ')}) - ${pattern.historial.length} pasos`;
+                select.appendChild(option);
+            }
+        }
+
+        function comparePatterns() {
+            const select = document.getElementById('saved-patterns');
+            const selectedOptions = Array.from(select.selectedOptions).map(option => option.value);
+            const outputDiv = document.getElementById('comparison-output');
+
+            if (selectedOptions.length !== 2) {
+                outputDiv.innerHTML = "<strong>Error:</strong> Selecciona exactamente DOS patrones para comparar.";
+                return;
+            }
+
+            const nameA = selectedOptions[0];
+            const nameB = selectedOptions[1];
+            const patternA = savedPatterns[nameA];
+            const patternB = savedPatterns[nameB];
+
+            let matchCount = 0;
+            let totalStates = 0;
+            let comparisonOutput = `<h4>Comparando ${nameA} vs ${nameB}:</h4><ul>`;
+
+            const stepsA = patternA.historial;
+            const stepsB = patternB.historial;
+
+            // Usamos los IDs de los nodos del patrón A, asumiendo que el orden debe coincidir para la comparación
+            const nodeIDs = patternA.nodos;
+
+            // Verificar si la estructura de nodos es idéntica
+            if (patternA.nodos.length !== patternB.nodos.length ||
+                patternA.nodos.some((id, i) => id !== patternB.nodos[i])) {
+                 outputDiv.innerHTML = `<strong>Error:</strong> Las estructuras de nodos (${nameA}: ${patternA.nodos.join(', ')}) y (${nameB}: ${patternB.nodos.join(', ')}) no son idénticas. La comparación directa no es válida. Asegúrate de que los nodos están definidos en el mismo orden.`;
+                 return;
+            }
+
+            const maxSteps = Math.min(stepsA.length, stepsB.length);
+
+            for (let t = 0; t < maxSteps; t++) {
+                comparisonOutput += `<li><strong>Paso ${t}:</strong> `;
+
+                for (const id of nodeIDs) {
+                    const stateA = stepsA[t][id];
+                    const stateB = stepsB[t][id];
+                    totalStates++;
+
+                    if (stateA === stateB) {
+                        matchCount++;
+                        comparisonOutput += `<span style="color: green;">${id}: ${stateA} (COINCIDE)</span>, `;
+                    } else {
+                        comparisonOutput += `<span style="color: red;">${id}: ${stateA} &ne; ${stateB} (FALLA)</span>, `;
+                    }
+                }
+                comparisonOutput = comparisonOutput.slice(0, -2);
+                comparisonOutput += `</li>`;
+            }
+
+            const similarity = (matchCount / totalStates) * 100;
+            comparisonOutput += `</ul><hr><p><strong>Resultado Final:</strong> Coincidencia del <strong>${similarity.toFixed(2)}%</strong> (${matchCount} de ${totalStates} estados).`;
+
+            if (similarity === 100) {
+                comparisonOutput += `<br>¡🎉 **ISOMORFISMO PERFECTO** ENCONTRADO! 🎉</p>`;
+            } else if (similarity > 75) {
+                comparisonOutput += `<br>Fuerte similitud. La divergencia es menor, analiza las fallas específicas. </p>`;
+            } else {
+                comparisonOutput += `<br>La divergencia es significativa. Se necesita reajustar los parámetros. </p>`;
+            }
+
+            outputDiv.innerHTML = comparisonOutput;
+        }
+
+        function clearPatterns() {
+            if (confirm("¿Estás seguro de que quieres eliminar TODOS los patrones guardados?")) {
+                localStorage.removeItem('re2m_patterns');
+                savedPatterns = {};
+                loadSavedPatterns();
+                document.getElementById('comparison-output').innerHTML = "Patrones eliminados.";
+            }
+        }
+
+        // Carga de nodos de ejemplo al iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cargar datos del localStorage si existen, si no, usar el ejemplo
+            const storedNodes = JSON.parse(localStorage.getItem('re2m_nodes'));
+            if (storedNodes && storedNodes.length > 0) {
+                nodesData = storedNodes;
+            } else if (nodesData.length === 0) {
+                // Nodos de ejemplo
+                nodesData.push({ id: 'F', name: 'Fuente Exógena', nir: 0, state: 'O', fixed: true });
+                nodesData.push({ id: 'A', name: 'Vía de Coherencia', nir: 2, state: 'O', fixed: false });
+                nodesData.push({ id: 'B', name: 'Vía de Colapso', nir: 1, state: 'O', fixed: false });
+            }
+
+            updateNodesTable();
+            updateLinksMatrix();
+            loadSavedPatterns();
+        });
+
+        // Guardar nodos en localStorage antes de salir (opcional, para persistencia)
+        window.addEventListener('beforeunload', () => {
+            // Guardar el estado actual de los nodos
+            localStorage.setItem('re2m_nodes', JSON.stringify(nodesData));
+            // Los patrones ya se guardan en saveCurrentPattern()
+        });
+    </script>
+</body>
+</html>
