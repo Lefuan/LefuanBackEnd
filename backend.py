@@ -1104,10 +1104,10 @@ def ejecutar_hito6(params):
     return "\n".join(output_lines), imagenes
 
 # ============================================
-# HITO 7: MacroPODB (VERSIÓN COMPLETA)
+# HITO 7: MacroPODB - VERSIÓN FUNCIONAL
 # ============================================
 def ejecutar_hito7(params):
-    """Hito 7: MacroPODB - Versión completa como el original"""
+    """Hito 7: MacroPODB - Versión completa funcional"""
     output_lines = []
     imagenes = []
     
@@ -1135,15 +1135,13 @@ def ejecutar_hito7(params):
 
         # Diccionario de opciones disponibles
         OPCIONES = {
-            1: {'nombre': 'Control', 'intra': 'global', 'inter': 'jerarquica', 'desc': 'Global + Jerárquica (original)'},
+            1: {'nombre': 'Control', 'intra': 'global', 'inter': 'jerarquica', 'desc': 'Global + Jerárquica'},
             2: {'nombre': 'Anillo', 'intra': 'anillo', 'inter': 'jerarquica', 'desc': 'Anillo intra + Jerárquica'},
             3: {'nombre': 'Scale-free', 'intra': 'scale_free', 'inter': 'jerarquica', 'desc': 'Scale-free intra + Jerárquica'},
             4: {'nombre': 'Estrella', 'intra': 'estrella', 'inter': 'jerarquica', 'desc': 'Estrella intra + Jerárquica'},
-            5: {'nombre': 'Global+Malla', 'intra': 'global', 'inter': 'malla', 'desc': 'Global + Malla inter (laterales)'},
-            6: {'nombre': 'Scale-free+Malla', 'intra': 'scale_free', 'inter': 'malla', 'desc': 'Scale-free + Malla inter (LA MEJOR)'},
-            7: {'nombre': 'Scale-free+Global', 'intra': 'scale_free', 'inter': 'global', 'desc': 'Scale-free + Global inter (todas conectadas)'},
-            8: {'nombre': 'Small-World', 'intra': 'small_world', 'inter': 'malla', 'desc': 'Small-world + Malla'},
-            9: {'nombre': 'Personalizada', 'intra': 'custom', 'inter': 'custom', 'desc': 'Configuración manual'}
+            5: {'nombre': 'Global+Malla', 'intra': 'global', 'inter': 'malla', 'desc': 'Global + Malla inter'},
+            6: {'nombre': 'Scale-free+Malla', 'intra': 'scale_free', 'inter': 'malla', 'desc': 'Scale-free + Malla inter'},
+            7: {'nombre': 'Scale-free+Global', 'intra': 'scale_free', 'inter': 'global', 'desc': 'Scale-free + Global inter'}
         }
 
         def __init__(self,
@@ -1350,29 +1348,18 @@ def ejecutar_hito7(params):
                 dtheta[self.indices[nivel]] = dtheta_n.flatten()
             return dtheta
 
-        def simular(self, T=20, puntos=100):
+        def simular(self, T=15, puntos=100):
             theta0 = np.random.uniform(-np.pi, np.pi, self.total)
+            t_eval = np.linspace(0, T, puntos)
             sol = solve_ivp(self.dynamics, (0, T), theta0,
-                            t_eval=np.linspace(0, T, puntos),
+                            t_eval=t_eval,
                             method='RK45', rtol=1e-2)
-    
-    # Registrar TODOS los puntos
-    if self.tracking_detallado:
-        for i, t_point in enumerate(t_eval):
-            self.registrar_estados(sol.y[:, i], t_point)
-    
-    return sol.t, sol.y
-    
-    # Registrar TODOS los puntos
-    if self.tracking_detallado:
-        for i, t_point in enumerate(t_eval):
-            self.registrar_estados(sol.y[:, i], t_point)
-    
-    return sol.t, sol.y
-            # Registrar estado final
+
+            # Registrar TODOS los puntos (con la indentación correcta)
             if self.tracking_detallado:
-                self.registrar_estados(sol.y[:, -1], T)
-            
+                for i, t_point in enumerate(t_eval):
+                    self.registrar_estados(sol.y[:, i], t_point)
+
             return sol.t, sol.y
 
         def registrar_estados(self, theta, t):
@@ -1429,7 +1416,6 @@ def ejecutar_hito7(params):
                         })
 
         def obtener_resultados_texto(self):
-            """Versión de imprimir_resultados que devuelve string en lugar de print"""
             lines = []
             lines.append(f"\n{'='*80}")
             lines.append(f"📊 RESULTADOS - Opción {self.opcion}: {self.nombre_config}")
@@ -1493,15 +1479,14 @@ def ejecutar_hito7(params):
             return "\n".join(lines)
 
         def capturar_graficas(self):
-            """Captura todas las gráficas generadas"""
             imagenes = []
             
             # Gráfica de sincronización
             fig1 = plt.figure(figsize=(12, 5))
             for nivel in range(self.niveles):
                 if nivel in self.historial_r_por_nivel and self.historial_r_por_nivel[nivel]:
-                    plt.plot(self.historial_tiempos[:len(self.historial_r_por_nivel[nivel])],
-                            self.historial_r_por_nivel[nivel],
+                    tiempos = self.historial_tiempos[:len(self.historial_r_por_nivel[nivel])]
+                    plt.plot(tiempos, self.historial_r_por_nivel[nivel],
                             label=f'N{nivel}', linewidth=2)
             plt.xlabel('Tiempo')
             plt.ylabel('Sincronización r')
