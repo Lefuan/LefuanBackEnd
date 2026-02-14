@@ -1109,6 +1109,8 @@ def ejecutar_hito7(params):
     """Hito 7: MacroPODB - Versión unificada completa"""
     output_lines = []
     imagenes = []
+
+    from collections import defaultdict
     
     # Recoger parámetros
     opcion = params.get('opcion', '6')
