@@ -1357,11 +1357,11 @@ def ejecutar_hito7(params):
                             method='RK45', rtol=1e-2)
     
     # Registrar TODOS los puntos
-            if self.tracking_detallado:
-                for i, t_point in enumerate(t_eval):
-                    self.registrar_estados(sol.y[:, i], t_point)
+    if self.tracking_detallado:
+        for i, t_point in enumerate(t_eval):
+            self.registrar_estados(sol.y[:, i], t_point)
     
-            return sol.t, sol.y
+    return sol.t, sol.y
     
     # Registrar TODOS los puntos
     if self.tracking_detallado:
