@@ -884,25 +884,144 @@ def ejecutar_hito6(params):
     
     t, r_nivel, theta_hist = sim.simular(T=20, puntos=150)
     
-    output_lines.append("\n=== SINCRONIZACIÓN ===")
+    output_lines.append("\n=== SINCRONIZACIÓN POR NIVEL ===")
     for i, r in enumerate([r[-1] for r in r_nivel]):
         estado = "✅" if r > 0.8 else "⚠️" if r > 0.5 else "❌"
         output_lines.append(f"Nivel {i}: r={r:.3f} {estado}")
     
-    # Gráfica
-    fig, ax = plt.subplots(figsize=(10, 5))
+    # ============================================
+    # GRÁFICA 1: Evolución de sincronización
+    # ============================================
+    fig1, ax1 = plt.subplots(figsize=(10, 5))
     for i, r in enumerate(r_nivel):
-        ax.plot(t, r, label=f'Nivel {i}', linewidth=2)
-    ax.set_xlabel('Tiempo')
-    ax.set_ylabel('r')
-    ax.set_ylim(0, 1.1)
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-    ax.set_title(f'PODB - {niveles} niveles, {metros} metrónomos')
-    imagenes.append(figura_a_base64(fig))
+        ax1.plot(t, r, label=f'Nivel {i}', linewidth=2)
+    ax1.set_xlabel('Tiempo')
+    ax1.set_ylabel('Sincronización r')
+    ax1.set_ylim(0, 1.1)
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+    ax1.set_title(f'PODB - {niveles} niveles, {metros} metrónomos')
+    imagenes.append(figura_a_base64(fig1))
+    
+    # ============================================
+    # GRÁFICA 2: Visualización de estados Nivel 0
+    # ============================================
+    theta_final = theta_hist[:, -1]
+    
+    # Nivel 0
+    idx0 = sim.indices[0]
+    theta_nivel0 = theta_final[idx0]
+    n_osc0 = len(theta_nivel0)
+    
+    fig2, axes2 = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Matriz de estados
+    matriz_estados0 = np.zeros((n_osc0, n_osc0))
+    for i in range(n_osc0):
+        for j in range(n_osc0):
+            if i != j:
+                delta = theta_nivel0[i] - theta_nivel0[j]
+                matriz_estados0[i, j] = sim._estado_a_partir_de_fase(delta)
+    
+    im0 = axes2[0].imshow(matriz_estados0, cmap='RdYlGn', vmin=0, vmax=1)
+    axes2[0].set_title('Estados - Nivel 0 (Base)')
+    axes2[0].set_xlabel('Oscilador j')
+    axes2[0].set_ylabel('Oscilador i')
+    plt.colorbar(im0, ax=axes2[0])
+    
+    # Histograma
+    valores0 = matriz_estados0[matriz_estados0 > 0].flatten()
+    axes2[1].hist(valores0, bins=20, color='skyblue', edgecolor='black')
+    axes2[1].axvline(x=0.8, color='blue', linestyle='--', label='P')
+    axes2[1].axvline(x=0.3, color='green', linestyle='--', label='O')
+    axes2[1].axvline(x=0.1, color='orange', linestyle='--', label='D')
+    axes2[1].set_xlabel('Valor de estado')
+    axes2[1].set_ylabel('Frecuencia')
+    axes2[1].set_title('Distribución de estados - Nivel 0')
+    axes2[1].legend()
+    
+    plt.tight_layout()
+    imagenes.append(figura_a_base64(fig2))
+    
+    # ============================================
+    # GRÁFICA 3: Visualización de estados Nivel 1
+    # ============================================
+    if niveles > 1:
+        idx1_start = sim.indices[1].start
+        theta_nivel1 = theta_final[idx1_start:idx1_start + metros]
+        n_osc1 = len(theta_nivel1)
+        
+        fig3, axes3 = plt.subplots(1, 2, figsize=(14, 5))
+        
+        matriz_estados1 = np.zeros((n_osc1, n_osc1))
+        for i in range(n_osc1):
+            for j in range(n_osc1):
+                if i != j:
+                    delta = theta_nivel1[i] - theta_nivel1[j]
+                    matriz_estados1[i, j] = sim._estado_a_partir_de_fase(delta)
+        
+        im1 = axes3[0].imshow(matriz_estados1, cmap='RdYlGn', vmin=0, vmax=1)
+        axes3[0].set_title('Estados - Nivel 1, Plataforma 0')
+        axes3[0].set_xlabel('Oscilador j')
+        axes3[0].set_ylabel('Oscilador i')
+        plt.colorbar(im1, ax=axes3[0])
+        
+        valores1 = matriz_estados1[matriz_estados1 > 0].flatten()
+        axes3[1].hist(valores1, bins=20, color='skyblue', edgecolor='black')
+        axes3[1].axvline(x=0.8, color='blue', linestyle='--', label='P')
+        axes3[1].axvline(x=0.3, color='green', linestyle='--', label='O')
+        axes3[1].axvline(x=0.1, color='orange', linestyle='--', label='D')
+        axes3[1].set_xlabel('Valor de estado')
+        axes3[1].set_ylabel('Frecuencia')
+        axes3[1].set_title('Distribución de estados - Nivel 1')
+        axes3[1].legend()
+        
+        plt.tight_layout()
+        imagenes.append(figura_a_base64(fig3))
+    
+    # ============================================
+    # GRÁFICA 4: Visualización de estados Nivel 2 (si existe)
+    # ============================================
+    if niveles > 2:
+        idx2_start = sim.indices[2].start
+        theta_nivel2 = theta_final[idx2_start:idx2_start + metros]
+        n_osc2 = len(theta_nivel2)
+        
+        fig4, axes4 = plt.subplots(1, 2, figsize=(14, 5))
+        
+        matriz_estados2 = np.zeros((n_osc2, n_osc2))
+        for i in range(n_osc2):
+            for j in range(n_osc2):
+                if i != j:
+                    delta = theta_nivel2[i] - theta_nivel2[j]
+                    matriz_estados2[i, j] = sim._estado_a_partir_de_fase(delta)
+        
+        im2 = axes4[0].imshow(matriz_estados2, cmap='RdYlGn', vmin=0, vmax=1)
+        axes4[0].set_title('Estados - Nivel 2, Plataforma 0')
+        axes4[0].set_xlabel('Oscilador j')
+        axes4[0].set_ylabel('Oscilador i')
+        plt.colorbar(im2, ax=axes4[0])
+        
+        valores2 = matriz_estados2[matriz_estados2 > 0].flatten()
+        axes4[1].hist(valores2, bins=20, color='skyblue', edgecolor='black')
+        axes4[1].axvline(x=0.8, color='blue', linestyle='--', label='P')
+        axes4[1].axvline(x=0.3, color='green', linestyle='--', label='O')
+        axes4[1].axvline(x=0.1, color='orange', linestyle='--', label='D')
+        axes4[1].set_xlabel('Valor de estado')
+        axes4[1].set_ylabel('Frecuencia')
+        axes4[1].set_title('Distribución de estados - Nivel 2')
+        axes4[1].legend()
+        
+        plt.tight_layout()
+        imagenes.append(figura_a_base64(fig4))
+    
+    # ============================================
+    # ESTADÍSTICAS EN OUTPUT
+    # ============================================
+    output_lines.append("\n=== ESTADÍSTICAS DE ESTADOS (Nivel 0) ===")
+    # Aquí puedes añadir las estadísticas que quieras
     
     return "\n".join(output_lines), imagenes
-
 
 # ============================================
 # HITO 7: MacroPODB (independiente, con parámetros)
