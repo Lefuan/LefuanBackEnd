@@ -489,23 +489,72 @@
         ];
 
         // ============================================
-        // PARÁMETROS POR SCRIPT
+        // PARÁMETROS POR SCRIPT CON DESCRIPCIONES
         // ============================================
         const PARAMETROS_SCRIPT = {
             'hito3': [
-                { nombre: 'niveles', tipo: 'select', opciones: [3,4,5,6], default: 6, label: 'Número de niveles' }
+                { 
+                    nombre: 'niveles', 
+                    tipo: 'select', 
+                    opciones: [3,4,5,6], 
+                    default: 6, 
+                    label: '📊 Número de niveles',
+                    desc: 'Cantidad de capas jerárquicas a simular (3-6). Más niveles = más complejidad.'
+                }
             ],
             'hito5': [
-                { nombre: 'opcion', tipo: 'select', opciones: [1,2,3,4,5,6,7], default: 6, label: 'Opción de topología' }
+                { 
+                    nombre: 'opcion', 
+                    tipo: 'select', 
+                    opciones: [1,2,3,4,5,6,7], 
+                    default: 6, 
+                    label: '🔄 Topología',
+                    desc: '1=Global+Jerárquica | 2=Anillo | 3=Scale-free | 4=Estrella | 5=Global+Malla | 6=Scale-free+Malla (MEJOR) | 7=Scale-free+Global'
+                }
             ],
             'hito6': [
-                { nombre: 'niveles', tipo: 'select', opciones: [2,3,4], default: 3, label: 'Niveles' },
-                { nombre: 'metros', tipo: 'select', opciones: [3,4], default: 4, label: 'Metrónomos/plataforma' }
+                { 
+                    nombre: 'niveles', 
+                    tipo: 'select', 
+                    opciones: [2,3,4], 
+                    default: 3, 
+                    label: '📊 Niveles PODB',
+                    desc: 'Número de niveles para el modelo con estados P-O-D-B (2-4)'
+                },
+                { 
+                    nombre: 'metros', 
+                    tipo: 'select', 
+                    opciones: [3,4], 
+                    default: 4, 
+                    label: '🎯 Metrónomos/plataforma',
+                    desc: 'Cantidad de osciladores por cada plataforma (3-4)'
+                }
             ],
             'hito7': [
-                { nombre: 'opcion', tipo: 'select', opciones: [1,2,3,4,5,6,7], default: 6, label: 'Opción de topología' },
-                { nombre: 'niveles', tipo: 'select', opciones: [3,4,5,6], default: 5, label: 'Número de niveles' },
-                { nombre: 'modo', tipo: 'select', opciones: ['clasico', 'podb'], default: 'podb', label: 'Modo de simulación' }
+                { 
+                    nombre: 'opcion', 
+                    tipo: 'select', 
+                    opciones: [1,2,3,4,5,6,7], 
+                    default: 6, 
+                    label: '🔄 Topología',
+                    desc: '1=Global+Jerárquica | 2=Anillo | 3=Scale-free | 4=Estrella | 5=Global+Malla | 6=Scale-free+Malla (MEJOR) | 7=Scale-free+Global'
+                },
+                { 
+                    nombre: 'niveles', 
+                    tipo: 'select', 
+                    opciones: [3,4,5,6], 
+                    default: 5, 
+                    label: '📊 Niveles',
+                    desc: 'Número de capas jerárquicas en la simulación unificada'
+                },
+                { 
+                    nombre: 'modo', 
+                    tipo: 'select', 
+                    opciones: ['clasico', 'podb'], 
+                    default: 'podb', 
+                    label: '⚙️ Modo',
+                    desc: 'clasico = K fijo | podb = K variable por estado (P-O-D-B)'
+                }
             ]
         };
 
@@ -550,6 +599,9 @@
             mostrarParametros(id);
         }
 
+        // ============================================
+        // FUNCIÓN PARA MOSTRAR PARÁMETROS CON DESCRIPCIÓN
+        // ============================================
         function mostrarParametros(scriptId) {
             const panel = document.getElementById('paramPanel');
             const div = document.getElementById('parametros-dinamicos');
@@ -567,7 +619,7 @@
                 html += `<label>${param.label}:</label>`;
                 
                 if (param.tipo === 'select') {
-                    html += `<select id="param-${param.nombre}">`;
+                    html += `<select id="param-${param.nombre}" style="width: auto; min-width: 150px;">`;
                     param.opciones.forEach(val => {
                         html += `<option value="${val}" ${val === param.default ? 'selected' : ''}>${val}</option>`;
                     });
@@ -575,6 +627,13 @@
                 }
                 
                 html += `</div>`;
+                
+                // Añadir descripción debajo del selector
+                if (param.desc) {
+                    html += `<div style="margin: 5px 0 15px 160px; font-size: 0.9em; color: #8b949e; font-style: italic; border-left: 2px solid #58a6ff; padding-left: 10px;">`;
+                    html += `${param.desc}`;
+                    html += `</div>`;
+                }
             });
             
             div.innerHTML = html;
@@ -636,7 +695,7 @@
                     if (result.imagenes && result.imagenes.length > 0) {
                         let html = '';
                         result.imagenes.forEach((img, index) => {
-                            html += `<img src="data:image/png;base64,${img}" alt="Gráfica ${index+1}">`;
+                            html += `<img src="data:image/png;base64,${img}" alt="Gráfica ${index+1}" style="max-width: 100%; margin-bottom: 20px;">`;
                         });
                         plotsEl.innerHTML = html;
                     } else {
