@@ -1043,24 +1043,24 @@ def ejecutar_hito6(params):
             output_lines.append(f"  Estado D (0.1-0.3): {np.sum((valores_array2 >= 0.1) & (valores_array2 < 0.3))} ({np.sum((valores_array2 >= 0.1) & (valores_array2 < 0.3))/len(valores_array2)*100:.1f}%)")
             output_lines.append(f"  Estado B (<0.1): {np.sum(valores_array2 < 0.1)} ({np.sum(valores_array2 < 0.1)/len(valores_array2)*100:.1f}%)")
         
-        # ============================================#
-        # GRÁFICA 5: Visualización de estados Nivel 3 (si existe)
-        # ============================================#    
-        if niveles > 3:
-            idx3_start = sim.indices[3].start
-            theta_nivel3 = theta_final[idx3_start:idx3_start + metros]
-            n_osc3 = len(theta_nivel3)
+    # ============================================#
+    # GRÁFICA 5: Visualización de estados Nivel 3 (si existe)
+    # ============================================#    
+    if niveles > 3:
+        idx3_start = sim.indices[3].start
+        theta_nivel3 = theta_final[idx3_start:idx3_start + metros]
+        n_osc3 = len(theta_nivel3)
     
-            # Calcular matriz y valores
-            matriz_estados3 = np.zeros((n_osc3, n_osc3))
-            valores3 = []
-            for i in range(n_osc3):
-                for j in range(n_osc3):
-                    if i != j:
-                        delta = theta_nivel3[i] - theta_nivel3[j]
-                        valor = sim._estado_a_partir_de_fase(delta)
-                        matriz_estados3[i, j] = valor
-                        valores3.append(valor)
+        # Calcular matriz y valores
+        matriz_estados3 = np.zeros((n_osc3, n_osc3))
+        valores3 = []
+        for i in range(n_osc3):
+            for j in range(n_osc3):
+                if i != j:
+                    delta = theta_nivel3[i] - theta_nivel3[j]
+                    valor = sim._estado_a_partir_de_fase(delta)
+                    matriz_estados3[i, j] = valor
+                    valores3.append(valor)
     
         # GRÁFICA NIVEL 3
         fig5, axes5 = plt.subplots(1, 2, figsize=(14, 5))
