@@ -1104,9 +1104,6 @@ def ejecutar_hito6(params):
     return "\n".join(output_lines), imagenes
 
 # ============================================
-# HITO 7: MacroPODB (completo, con parámetros)
-# ============================================
-# ============================================
 # HITO 7: MacroPODB (VERSIÓN COMPLETA)
 # ============================================
 def ejecutar_hito7(params):
@@ -1358,18 +1355,11 @@ def ejecutar_hito7(params):
             sol = solve_ivp(self.dynamics, (0, T), theta0,
                             t_eval=np.linspace(0, T, puntos),
                             method='RK45', rtol=1e-2)
-
-    def simular(self, T=20, puntos=100):
-        theta0 = np.random.uniform(-np.pi, np.pi, self.total)
-        t_eval = np.linspace(0, T, puntos)
-        sol = solve_ivp(self.dynamics, (0, T), theta0,
-                        t_eval=t_eval,
-                        method='RK45', rtol=1e-2)
     
     # Registrar TODOS los puntos
-    #if self.tracking_detallado:
-    #    for i, t_point in enumerate(t_eval):
-    #        self.registrar_estados(sol.y[:, i], t_point)
+    if self.tracking_detallado:
+        for i, t_point in enumerate(t_eval):
+            self.registrar_estados(sol.y[:, i], t_point)
     
     return sol.t, sol.y
     
