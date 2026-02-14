@@ -1102,10 +1102,10 @@ def ejecutar_hito6(params):
     return "\n".join(output_lines), imagenes
 
 # ============================================
-# HITO 7: MacroPODB (independiente, con parámetros)
+# HITO 7: MacroPODB (completo, con parámetros)
 # ============================================
 def ejecutar_hito7(params):
-    """Hito 7: MacroPODB - Versión unificada"""
+    """Hito 7: MacroPODB - Versión unificada completa"""
     output_lines = []
     imagenes = []
     
@@ -1119,25 +1119,51 @@ def ejecutar_hito7(params):
     output_lines.append(f"{'='*80}")
     output_lines.append(f"Parámetros: opción={opcion}, niveles={niveles}, modo={modo}")
     
-    # Clase específica para este hito (copia simplificada)
+    # ============================================
+    # CLASE COMPLETA DEL HITO 7 (basada en MacroPODB)
+    # ============================================
     class Hito7_MacroPODB:
         def __init__(self, opcion=6, niveles=5, metros_por_plataforma=3, modo='podb'):
-            self.opcion = opcion
+            self.opcion = int(opcion)
             self.niveles = niveles
             self.mpp = metros_por_plataforma
             self.modo = modo
             
+            # Topologías según opción
+            self.topologias = {
+                1: ('global', 'jerarquica', 0.5),
+                2: ('anillo', 'jerarquica', 0.5),
+                3: ('scale_free', 'jerarquica', 0.5),
+                4: ('estrella', 'jerarquica', 0.5),
+                5: ('global', 'malla', 0.3),
+                6: ('scale_free', 'malla', 0.3),
+                7: ('scale_free', 'global', 0.5)
+            }
+            self.topologia_intra, self.topologia_inter, self.K_lateral = self.topologias.get(
+                self.opcion, ('scale_free', 'malla', 0.3)
+            )
+            
+            # Estructura fractal
             self.plataformas_por_nivel = [3**i for i in range(niveles)]
             self.osciladores_por_nivel = [p * metros_por_plataforma for p in self.plataformas_por_nivel]
             self.total = sum(self.osciladores_por_nivel)
             
+            # Frecuencias
             np.random.seed(42)
             self.omega = np.concatenate([
                 np.random.normal(1.0, 0.1 + 0.02*i, n)
                 for i, n in enumerate(self.osciladores_por_nivel)
             ])
             
+            # Construir matrices
+            self.adjacencias = self._construir_adjacencias()
+            self.K_matrices = self._inicializar_K()
             self.indices = self._construir_indices()
+            
+            # Para tracking
+            self.historial_tiempos = []
+            self.historial_r_por_nivel = defaultdict(list)
+            self.historial_estados_por_nivel = defaultdict(list)
         
         def _construir_indices(self):
             indices = []
@@ -1147,42 +1173,180 @@ def ejecutar_hito7(params):
                 start += n
             return indices
         
-        def dynamics_simple(self, t, theta):
-            # Versión simplificada para simulación rápida
+        def _construir_adjacencias_intra(self, n_osc, topologia):
+            if n_osc <= 1:
+                return np.zeros((n_osc, n_osc))
+            
+            if topologia == 'global':
+                return np.ones((n_osc, n_osc)) - np.eye(n_osc)
+            elif topologia == 'anillo':
+                A = np.zeros((n_osc, n_osc))
+                for i in range(n_osc):
+                    A[i, (i-1)%n_osc] = 1
+                    A[i, (i+1)%n_osc] = 1
+                return A
+            elif topologia == 'estrella':
+                A = np.zeros((n_osc, n_osc))
+                centro = 0
+                for i in range(1, n_osc):
+                    A[centro, i] = 1
+                    A[i, centro] = 1
+                return A
+            elif topologia == 'scale_free':
+                if n_osc > 2:
+                    return generar_scale_free(n_osc, m=2)
+                else:
+                    return np.ones((n_osc, n_osc)) - np.eye(n_osc)
+            else:
+                return np.ones((n_osc, n_osc)) - np.eye(n_osc)
+        
+        def _construir_adjacencias(self):
+            adj = []
+            for nivel in range(self.niveles):
+                n_plt = self.plataformas_por_nivel[nivel]
+                adj_nivel = []
+                for p in range(n_plt):
+                    n_osc = self.mpp
+                    A = self._construir_adjacencias_intra(n_osc, self.topologia_intra)
+                    adj_nivel.append(A)
+                adj.append(adj_nivel)
+            return adj
+        
+        def _inicializar_K(self):
+            K_mat = []
+            for nivel in range(self.niveles):
+                n_plt = self.plataformas_por_nivel[nivel]
+                K_nivel = []
+                for p in range(n_plt):
+                    n_osc = self.mpp
+                    A = self.adjacencias[nivel][p]
+                    if self.modo == 'podb':
+                        K_plt = self.K_base * A
+                    else:
+                        K_plt = self.K_base * A
+                    K_nivel.append(K_plt)
+                K_mat.append(K_nivel)
+            return K_mat
+        
+        def _estado_a_partir_de_fase(self, delta_theta):
+            delta = np.abs(delta_theta) % (2*np.pi)
+            if delta > np.pi:
+                delta = 2*np.pi - delta
+            return (np.cos(delta) + 1) / 2
+        
+        def actualizar_K_por_estado(self, theta):
+            if self.modo != 'podb':
+                return
+            
+            for nivel in range(self.niveles):
+                if nivel == 0:
+                    theta_nivel = theta[self.indices[0]]
+                    n_plt = 1
+                    n_osc = len(theta_nivel)
+                    theta_reshaped = theta_nivel.reshape(1, n_osc)
+                else:
+                    n_plt = self.plataformas_por_nivel[nivel]
+                    n_osc = self.mpp
+                    theta_reshaped = theta[self.indices[nivel]].reshape(n_plt, n_osc)
+                
+                for p in range(n_plt):
+                    A = self.adjacencias[nivel][p]
+                    K_actual = self.K_matrices[nivel][p]
+                    for i in range(n_osc):
+                        for j in range(n_osc):
+                            if A[i, j] > 0 and i != j:
+                                delta = theta_reshaped[p, i] - theta_reshaped[p, j]
+                                estado_valor = self._estado_a_partir_de_fase(delta)
+                                K_actual[i, j] = self.K_base * estado_valor
+                    self.K_matrices[nivel][p] = K_actual
+        
+        def _construir_conexiones_laterales(self, n_plt):
+            conexiones = []
+            if self.topologia_inter == 'malla':
+                for p in range(n_plt):
+                    if p > 0:
+                        conexiones.append((p, p-1))
+                    if p < n_plt - 1:
+                        conexiones.append((p, p+1))
+            elif self.topologia_inter == 'global':
+                for p1 in range(n_plt):
+                    for p2 in range(p1+1, n_plt):
+                        conexiones.append((p1, p2))
+            return conexiones
+        
+        def dynamics(self, t, theta):
+            # Actualizar K en modo PODB
+            self.actualizar_K_por_estado(theta)
+            
             dtheta = np.zeros_like(theta)
-            K_intra = 2.0
-            K_inter = 1.5
             
+            # NIVEL 0
             theta0 = theta[self.indices[0]]
-            for i in range(len(theta0)):
-                dtheta[self.indices[0]][i] = self.omega[self.indices[0]][i] + (K_intra/len(theta0)) * np.sum(np.sin(theta0 - theta0[i]))
+            n0 = len(theta0)
+            K0 = self.K_matrices[0][0]
             
+            for i in range(n0):
+                suma = 0
+                for j in range(n0):
+                    if i != j:
+                        suma += K0[i, j] * np.sin(theta0[j] - theta0[i])
+                dtheta[self.indices[0]][i] = self.omega[self.indices[0]][i] + suma
+            
+            # NIVELES SUPERIORES
             for nivel in range(1, self.niveles):
-                n_plt = 3**nivel
-                n_por_plt = self.mpp
-                theta_n = theta[self.indices[nivel]].reshape(n_plt, n_por_plt)
+                n_plt = self.plataformas_por_nivel[nivel]
+                n_osc = self.mpp
+                
+                theta_n = theta[self.indices[nivel]].reshape(n_plt, n_osc)
                 dtheta_n = np.zeros_like(theta_n)
                 
-                theta_prev = theta[self.indices[nivel-1]].reshape(3**(nivel-1), self.mpp)
+                theta_prev = theta[self.indices[nivel-1]].reshape(self.plataformas_por_nivel[nivel-1], self.mpp)
                 r_prev = np.mean(np.exp(1j * theta_prev), axis=1)
                 phi_prev = np.angle(r_prev)
                 
+                conexiones = self._construir_conexiones_laterales(n_plt)
+                
                 for p in range(n_plt):
                     madre = p // 3
-                    for i in range(n_por_plt):
-                        intra = (K_intra/n_por_plt) * np.sum(np.sin(theta_n[p] - theta_n[p, i]))
-                        inter = K_inter * np.sin(phi_prev[madre] - theta_n[p, i])
-                        idx_global = self.indices[nivel].start + p*n_por_plt + i
-                        dtheta_n[p, i] = self.omega[idx_global] + intra + inter
+                    K_plt = self.K_matrices[nivel][p]
+                    
+                    for i in range(n_osc):
+                        # Intra
+                        intra = 0
+                        for j in range(n_osc):
+                            if i != j:
+                                intra += K_plt[i, j] * np.sin(theta_n[p, j] - theta_n[p, i])
+                        
+                        # Inter (madre)
+                        inter = self.K_inter_base * np.sin(phi_prev[madre] - theta_n[p, i])
+                        
+                        # Laterales
+                        lateral = 0
+                        if conexiones:
+                            for (p1, p2) in conexiones:
+                                if p == p1:
+                                    for j in range(n_osc):
+                                        lateral += np.sin(theta_n[p2, j] - theta_n[p, i])
+                                elif p == p2:
+                                    for j in range(n_osc):
+                                        lateral += np.sin(theta_n[p1, j] - theta_n[p, i])
+                            lateral = self.K_lateral * lateral / (len(conexiones) * n_osc)
+                        
+                        idx = self.indices[nivel].start + p*n_osc + i
+                        dtheta_n[p, i] = self.omega[idx] + intra + inter + lateral
                 
                 dtheta[self.indices[nivel]] = dtheta_n.flatten()
+            
             return dtheta
         
-        def simular(self, T=15, puntos=100):
+        def simular(self, T=20, puntos=150):
             theta0 = np.random.uniform(-np.pi, np.pi, self.total)
-            sol = solve_ivp(self.dynamics_simple, (0, T), theta0,
+            
+            sol = solve_ivp(self.dynamics, (0, T), theta0,
                             t_eval=np.linspace(0, T, puntos),
                             method='RK45', rtol=1e-2)
+            
+            # Calcular r por nivel
             r_nivel = []
             for nivel in range(self.niveles):
                 fases = sol.y[self.indices[nivel]]
@@ -1191,29 +1355,96 @@ def ejecutar_hito7(params):
                 else:
                     r = np.abs(np.mean(np.exp(1j * fases), axis=0))
                 r_nivel.append(r)
-            return sol.t, r_nivel
+            
+            return sol.t, r_nivel, sol.y
     
-    output_lines.append("\n--- Ejecutando simulación ---")
+    # ============================================
+    # EJECUTAR SIMULACIÓN
+    # ============================================
+    K_base = 2.0
+    K_inter_base = 1.5
     
-    sim = Hito7_MacroPODB(opcion=int(opcion), niveles=niveles, modo=modo)
-    t, r_nivel = sim.simular(T=15, puntos=100)
+    sim = Hito7_MacroPODB(
+        opcion=opcion,
+        niveles=niveles,
+        metros_por_plataforma=3,
+        modo=modo
+    )
     
-    output_lines.append("\n=== RESULTADOS ===")
+    # Añadir atributos necesarios
+    sim.K_base = K_base
+    sim.K_inter_base = K_inter_base
+    sim.K_lateral = sim.K_lateral  # ya está definido
+    
+    t, r_nivel, theta_hist = sim.simular(T=15, puntos=100)
+    
+    output_lines.append("\n=== RESULTADOS POR NIVEL ===")
     for i, r in enumerate([r[-1] for r in r_nivel]):
         estado = "✅" if r > 0.8 else "⚠️" if r > 0.5 else "❌"
         output_lines.append(f"Nivel {i}: r={r:.3f} {estado}")
     
-    # Gráfica
-    fig, ax = plt.subplots(figsize=(10, 5))
+    # ============================================
+    # GRÁFICA 1: Evolución de sincronización
+    # ============================================
+    fig1, ax1 = plt.subplots(figsize=(10, 5))
     for i, r in enumerate(r_nivel):
-        ax.plot(t, r, label=f'Nivel {i}', linewidth=2)
-    ax.set_xlabel('Tiempo')
-    ax.set_ylabel('r')
-    ax.set_ylim(0, 1.1)
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-    ax.set_title(f'MacroPODB - Opción {opcion}, {niveles} niveles')
-    imagenes.append(figura_a_base64(fig))
+        ax1.plot(t, r, label=f'Nivel {i}', linewidth=2)
+    ax1.set_xlabel('Tiempo')
+    ax1.set_ylabel('Sincronización r')
+    ax1.set_ylim(0, 1.1)
+    ax1.grid(True, alpha=0.3)
+    ax1.legend()
+    ax1.set_title(f'MacroPODB - Opción {opcion}, {niveles} niveles, modo {modo}')
+    imagenes.append(figura_a_base64(fig1))
+    
+    # ============================================
+    # GRÁFICA 2: Estados Nivel 0 (si modo PODB)
+    # ============================================
+    if modo == 'podb' and niveles > 0:
+        theta_final = theta_hist[:, -1]
+        
+        # Nivel 0
+        idx0 = sim.indices[0]
+        theta_nivel0 = theta_final[idx0]
+        n_osc0 = len(theta_nivel0)
+        
+        fig2, axes2 = plt.subplots(1, 2, figsize=(14, 5))
+        
+        matriz_estados0 = np.zeros((n_osc0, n_osc0))
+        valores0 = []
+        for i in range(n_osc0):
+            for j in range(n_osc0):
+                if i != j:
+                    delta = theta_nivel0[i] - theta_nivel0[j]
+                    valor = sim._estado_a_partir_de_fase(delta)
+                    matriz_estados0[i, j] = valor
+                    valores0.append(valor)
+        
+        im0 = axes2[0].imshow(matriz_estados0, cmap='RdYlGn', vmin=0, vmax=1)
+        axes2[0].set_title('Estados - Nivel 0 (Base)')
+        axes2[0].set_xlabel('Oscilador j')
+        axes2[0].set_ylabel('Oscilador i')
+        plt.colorbar(im0, ax=axes2[0])
+        
+        axes2[1].hist(valores0, bins=20, color='skyblue', edgecolor='black')
+        axes2[1].axvline(x=0.8, color='blue', linestyle='--', label='P')
+        axes2[1].axvline(x=0.3, color='green', linestyle='--', label='O')
+        axes2[1].axvline(x=0.1, color='orange', linestyle='--', label='D')
+        axes2[1].set_xlabel('Valor de estado')
+        axes2[1].set_ylabel('Frecuencia')
+        axes2[1].set_title('Distribución - Nivel 0')
+        axes2[1].legend()
+        
+        plt.tight_layout()
+        imagenes.append(figura_a_base64(fig2))
+        
+        # 📝 ESTADÍSTICAS NIVEL 0
+        valores_array0 = np.array(valores0)
+        output_lines.append(f"\n📊 Estadísticas PODB - Nivel 0")
+        output_lines.append(f"  P: {np.sum(valores_array0 >= 0.8)} ({np.sum(valores_array0 >= 0.8)/len(valores_array0)*100:.1f}%)")
+        output_lines.append(f"  O: {np.sum((valores_array0 >= 0.3) & (valores_array0 < 0.8))} ({np.sum((valores_array0 >= 0.3) & (valores_array0 < 0.8))/len(valores_array0)*100:.1f}%)")
+        output_lines.append(f"  D: {np.sum((valores_array0 >= 0.1) & (valores_array0 < 0.3))} ({np.sum((valores_array0 >= 0.1) & (valores_array0 < 0.3))/len(valores_array0)*100:.1f}%)")
+        output_lines.append(f"  B: {np.sum(valores_array0 < 0.1)} ({np.sum(valores_array0 < 0.1)/len(valores_array0)*100:.1f}%)")
     
     return "\n".join(output_lines), imagenes
 
