@@ -1124,14 +1124,14 @@ def ejecutar_hito7(params):
     # CLASE COMPLETA DEL HITO 7 (basada en MacroPODB)
     # ============================================
     class Hito7_MacroPODB:
-        def __init__(self, opcion=6, niveles=5, metros_por_plataforma=3, modo='podb'):
+        def __init__(self, opcion=6, niveles=5, metros_por_plataforma=3, modo='podb', K_base=2.0, K_inter_base=1.5):
             self.opcion = int(opcion)
             self.niveles = niveles
             self.mpp = metros_por_plataforma
             self.modo = modo
-            self.K_base = K_base
-            self.K_inter_base = K_inter_base
-            
+            self.K_base = K_base  # ← AHORA SÍ, viene del parámetro
+            self.K_inter_base = K_inter_base  # ← AHORA SÍ, viene del parámetro
+                
             # Topologías según opción
             self.topologias = {
                 1: ('global', 'jerarquica', 0.5),
