@@ -1,13 +1,20 @@
+/* ===== VARIABLES Y RESET ===== */
 body {
     background-color: #0d1117;
     color: #e6edf3;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     text-align: center;
+    transform: scale(0.7);
+    transform-origin: top left;
+    width: 142.857%;
 }
 
-header { padding: 50px 20px; }
+header { 
+    padding: 50px 20px; 
+}
 
+/* ===== GRID PRINCIPAL ===== */
 .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
@@ -15,15 +22,14 @@ header { padding: 50px 20px; }
     padding: 20px;
     max-width: 1500px;
     margin: 0 auto;
-    /* Esto centra las cajas (Física, Mates, Bloodbowl) */
-    justify-content: center; 
+    justify-content: center;
 }
 
-/* Esta regla va AFUERA de la anterior */
 .grid-container > div[style*="flex"] {
     grid-column: 1 / -1;
 }
 
+/* ===== TARJETAS ===== */
 .card {
     background: #161b22;
     border: 1px solid #30363d;
@@ -37,9 +43,16 @@ header { padding: 50px 20px; }
     border-color: #58a6ff;
 }
 
+/* Colores temáticos de bordes */
+.math { border-left: 5px solid #79c0ff; }
+.bloodbowl { border-left: 5px solid #da3633; }
+.physics { border-left: 5px solid #d2a8ff; }
+.essay { border-left: 5px solid #3fb950; }
+
+/* ===== BOTONES GENERALES ===== */
 .btn {
     display: inline-block;
-    margin-top: 0px;
+    margin-top: 0;
     padding: 10px 20px;
     background-color: #238636;
     color: white;
@@ -47,24 +60,44 @@ header { padding: 50px 20px; }
     border-radius: 5px;
 }
 
+.btn-pdf {
+    background-color: #222 !important;
+    color: #4caf50 !important;
+    font-weight: bold;
+}
+
+.btn-volver {
+    background: transparent;
+    border: none;
+    color: #8b949e;
+    cursor: pointer;
+    margin-top: 0;
+    font-size: 0.8em;
+}
+
+.btn-volver:hover {
+    color: white;
+}
+
+/* ===== SECCIÓN SOCIAL ===== */
 .social-hub {
-    grid-column: 1 / -1; /* Si estás usando CSS Grid en el contenedor padre, esto hace que ocupe todas las columnas */
+    grid-column: 1 / -1;
     width: 100%;
     margin: 10px 0;
     padding: 10px 0;
-    background: #161b22; /* Un tono ligeramente distinto al fondo para resaltarlo */
+    background: #161b22;
     border-top: 1px solid #30363d;
     border-bottom: 1px solid #30363d;
 }
 
 .links-container {
     display: flex;
-    flex-direction: row; /* Fuerza la línea única */
-    justify-content: center; /* Centra los iconos */
+    flex-direction: row;
+    justify-content: center;
     align-items: center;
-    gap: 20px; /* Espacio entre botones */
-    flex-wrap: nowrap; /* Evita que se bajen a la siguiente línea si hay poco espacio */
-    overflow-x: hidden; /* Si la pantalla es muy pequeña, no permite scroll lateral en vez de romperse */
+    gap: 20px;
+    flex-wrap: nowrap;
+    overflow-x: hidden;
     padding: 20px;
 }
 
@@ -79,39 +112,10 @@ header { padding: 50px 20px; }
     min-width: 100px;
 }
 
-.btn-pdf {
-    background-color: #222 !important; /* Color lila para física */
-    color: #4caf50 !important;
-    font-weight: bold;
-}
-
-.btn-volver {
-    background: transparent;
-    border: none;
-    color: #8b949e;
-    cursor: pointer;
-    margin-top: 0px;
-    font-size: 0.8em;
-}
-
-.btn-volver:hover {
-    color: white;
-}
-
-.break {
-    flex-basis: 100%;
-    height: 0;
-}
-
-/* Colores temáticos */
-.math { border-left: 5px solid #79c0ff; }
-.bloodbowl { border-left: 5px solid #da3633; }
-.physics { border-left: 5px solid #d2a8ff; }
-.essay { border-left: 5px solid #3fb950; }
-/* Colores de marca */
+/* Colores de redes sociales */
 .reddit { background: #FF4500; }
 .youtube { background: #FF0000; }
-.podcast { background: #8735fb; } /* Color genérico de podcast */
+.podcast { background: #8735fb; }
 .github { background: #24292e; border: 1px solid #444; }
 .archive { background: #000000; border: 1px solid #666; }
 .Images { background: #bd081c !important; }
@@ -121,47 +125,52 @@ header { padding: 50px 20px; }
     transform: scale(1.05);
 }
 
+/* ===== ELEMENTOS DESPLEGABLES ===== */
 .desplegable {
     display: flex;
-    flex-wrap: wrap; /* Permite que el .break funcione */
+    flex-wrap: wrap;
     justify-content: center;
     gap: 10px;
 }
 
-/* Contenedor del botón partido */
+.break {
+    flex-basis: 100%;
+    height: 0;
+}
+
+/* ===== GRUPOS DE BOTONES (ESP/EN) ===== */
 .btn-group {
     display: inline-flex;
     vertical-align: middle;
     margin: 5px;
 }
 
-/* El botón de la izquierda (Español) */
 .btn-group .btn-left {
-    margin-top: 0px; /* Para alinear con tu .btn actual */
+    margin-top: 0;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
     border-right: 1px solid rgba(0,0,0,0.2);
 }
 
-/* El botón de la derecha (Inglés) */
 .btn-group .btn-right {
-    margin-top: 0px;
+    margin-top: 0;
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
     padding-left: 15px;
     padding-right: 15px;
 }
 
+/* ===== DRAWER DE PDF ===== */
 #pdf-drawer {
-    position: fixed !important; /* ¡ESTO ES CLAVE! */
-    left: 20px !important; /* Pegado al borde izquierdo */
-    top: 120px !important; /* Debajo del header */
-    right: 20px !important; /* Con margen derecho */
-    bottom: 50px !important; /* Encima del footer */
-    width: auto !important; /* Se ajusta entre left y right */
+    position: fixed !important;
+    left: 20px !important;
+    top: 120px !important;
+    right: 20px !important;
+    bottom: -400px !important;
+    width: auto !important;
     height: auto !important;
     max-width: none !important;
-    margin: 0 !important; /* Elimina todos los márgenes */
+    margin: 0 !important;
     padding: 0;
     background: rgba(255,255,255,0.02);
     border: 3px solid orange;
@@ -170,7 +179,8 @@ header { padding: 50px 20px; }
     flex-direction: column;
     gap: 0;
     box-shadow: 0 0 20px rgba(255,165,0,0.3);
-    z-index: 1000; /* Por encima de todo */
+    z-index: 1000;
+    transform: scale(1) !important; /* AÑADIDO: Contrarresta el scale del body */
 }
 
 #pdf-drawer .pdf-header {
@@ -196,7 +206,7 @@ header { padding: 50px 20px; }
 
 #pdf-frame {
     width: 100% !important;
-    height: calc(100% - 50px) !important; /* 100% del contenedor menos el header */
+    height: calc(100% - 50px) !important;
     min-height: 600px;
     border: none;
     border-radius: 0 0 12px 12px;
