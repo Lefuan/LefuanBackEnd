@@ -212,8 +212,3 @@ header {
     border-radius: 0 0 12px 12px;
     background: #000;
 }
-html, body {
-    transform: scale(0.7) !important;
-    transform-origin: top left !important;
-    width: 142.857% !important;
-}
