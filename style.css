@@ -1,21 +1,18 @@
-/* En tu CSS principal */
 html {
     transform: scale(0.7);
     transform-origin: top left;
-    width: 100%;
-    height: 100%;
+    width: 142.857%;
+    height: 142.857%;
 }
 
-/* ===== VARIABLES Y RESET ===== */
 body {
     background-color: #0d1117;
     color: #e6edf3;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     text-align: center;
-    transform: scale(0.7);
-    transform-origin: top left;
-    width: 142.857%;
+    width: 100%;
+    height: 100%;
 }
 
 header { 
