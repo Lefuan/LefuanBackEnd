@@ -5,9 +5,9 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     text-align: center;
-/*    transform: scale(0.7);
+    transform: scale(0.7);
     transform-origin: top left;
-    width: 142.857%;*/
+    width: 142.857%;
 }
 
 header { 
@@ -166,7 +166,7 @@ header {
     left: 20px !important;
     top: 120px !important;
     right: 20px !important;
-    bottom: 50px !important;
+    bottom: -400px !important;
     width: auto !important;
     height: auto !important;
     max-width: none !important;
@@ -180,7 +180,7 @@ header {
     gap: 0;
     box-shadow: 0 0 20px rgba(255,165,0,0.3);
     z-index: 1000;
-    transform: scale(1) !important; /* AÑADIDO: Contrarresta el scale del body */
+    /* transform: scale(1) !important; /* AÑADIDO: Contrarresta el scale del body */
 }
 
 #pdf-drawer .pdf-header {
