@@ -180,7 +180,7 @@ header {
     gap: 0;
     box-shadow: 0 0 20px rgba(255,165,0,0.3);
     z-index: 1000;
-    /* transform: scale(1) !important; /* AÑADIDO: Contrarresta el scale del body */
+    transform: scale(1) !important; /* AÑADIDO: Contrarresta el scale del body */
 }
 
 #pdf-drawer .pdf-header {
