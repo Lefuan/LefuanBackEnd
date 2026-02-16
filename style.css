@@ -5,9 +5,9 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     text-align: center;
-    transform: scale(0.7);
+/*    transform: scale(0.7);
     transform-origin: top left;
-    width: 142.857%;
+    width: 142.857%;*/
 }
 
 header { 
